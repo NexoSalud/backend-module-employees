@@ -9,6 +9,8 @@ import com.reactive.nexo.repository.EmployeeRepository;
 import com.reactive.nexo.repository.ValueAttributeEmployeeRepository;
 import com.reactive.nexo.dto.AttributeWithValuesDTO;
 import com.reactive.nexo.dto.UserWithAttributesDTO;
+import com.reactive.nexo.dto.AuthRequest;
+import com.reactive.nexo.dto.AuthResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -43,6 +45,9 @@ public class EmployeeService {
 
     @Autowired
     private com.reactive.nexo.service.ValueAttributeService valueAttributeService;
+
+    @Autowired
+    private RolService rolService;
 
     private static final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
@@ -233,6 +238,37 @@ public class EmployeeService {
                     // insert attempt. Doing them sequentially ensures stable, idempotent
                     // upsert behavior for each provided attribute.
                     return upserts.then(deletions).then(Mono.just(savedEmployee));
+                });
+    }
+
+    /**
+     * Authenticate an employee by identification and password. Returns AuthResponse that includes role and permisos.
+     */
+    public Mono<AuthResponse> authenticate(AuthRequest request) {
+        return employeeRepository.findByIdentificationTypeAndNumber(request.getIdentification_type(), request.getIdentification_number())
+                .flatMap(employee -> {
+                    if (employee.getPassword() == null) {
+                        return Mono.<AuthResponse>error(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "No password set for user"));
+                    }
+                    if (!passwordEncoder.matches(request.getPassword(), employee.getPassword())) {
+                        return Mono.<AuthResponse>error(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
+                    }
+                    // fetch role and permisos
+                    if (employee.getRol_id() == null) {
+                        AuthResponse r = new AuthResponse(employee.getId(), employee.getNames(), employee.getLastnames(), employee.getIdentification_type(), employee.getIdentification_number(), null, null, Collections.emptyList());
+                        return Mono.just(r);
+                    }
+                    return rolService.getRolWithPermisos(employee.getRol_id())
+                            .map(rolWithPermisos -> new AuthResponse(
+                                    employee.getId(),
+                                    employee.getNames(),
+                                    employee.getLastnames(),
+                                    employee.getIdentification_type(),
+                                    employee.getIdentification_number(),
+                                    employee.getRol_id(),
+                                    rolWithPermisos.getNombre(),
+                                    rolWithPermisos.getPermisos()
+                            ));
                 });
     }
 }

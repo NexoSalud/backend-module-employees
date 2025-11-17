@@ -3,6 +3,8 @@ package com.reactive.nexo.controller;
 import com.reactive.nexo.model.Employee;
 import com.reactive.nexo.service.EmployeeService;
 import com.reactive.nexo.dto.UserWithAttributesDTO;
+import com.reactive.nexo.dto.AuthRequest;
+import com.reactive.nexo.dto.AuthResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -62,4 +64,18 @@ private EmployeeService employeeService;
     public Flux<Employee> fetchEmployeesByIds(@RequestBody List<Integer> ids) {
         return employeeService.fetchEmployees(ids);
     }
+
+    /**
+     * POST /api/v1/employees/authenticate - Authenticate an employee
+     * Used by the session module to validate credentials and get roles/permissions
+     */
+    @PostMapping("/authenticate")
+    public Mono<ResponseEntity<AuthResponse>> authenticate(@RequestBody AuthRequest request) {
+        return employeeService.authenticate(request)
+                .map(authResponse -> ResponseEntity.status(HttpStatus.OK).body(authResponse))
+                .onErrorResume(err -> {
+                    return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
+                });
+    }
 }
+
