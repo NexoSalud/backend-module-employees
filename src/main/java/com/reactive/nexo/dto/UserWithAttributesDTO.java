@@ -14,6 +14,5 @@ public class UserWithAttributesDTO {
     private String names;
     private String lastnames;
     private String identification_type;
-    private String identification_number;
     private List<AttributeWithValuesDTO> attributes;
 }

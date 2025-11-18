@@ -66,10 +66,10 @@ public class UserControllerTest {
         .rowsUpdated()
         .block());
 
-    // Clean up data before each test
+    // Clean up data before each test (respecting foreign key constraints)
     databaseClient.sql("DELETE FROM value_attribute_employee").fetch().rowsUpdated().block();
     databaseClient.sql("DELETE FROM attribute_employee").fetch().rowsUpdated().block();
-    databaseClient.sql("DELETE FROM permiso").fetch().rowsUpdated().block();
+    databaseClient.sql("DELETE FROM permission").fetch().rowsUpdated().block();
     databaseClient.sql("DELETE FROM employees").fetch().rowsUpdated().block();
     databaseClient.sql("DELETE FROM rol").fetch().rowsUpdated().block();
 

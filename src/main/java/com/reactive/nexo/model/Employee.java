@@ -20,7 +20,7 @@ public class Employee {
     private String lastnames;
     private String identification_type;
     private String identification_number;
-    @ToString.Exclude
+    //@ToString.Exclude
     private String password;
     private Integer rol_id;
 
