@@ -10,12 +10,14 @@ import org.springframework.data.relational.core.mapping.Table;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Table("permiso")
-public class Permiso {
+@Table("permission")
+public class Permission {
 
     @Id
     private Integer id;
     @Column("rol_id")
     private Integer rol_id;
-    private String permiso;
+    private String method;
+    private String endpoint;
+    private String permission;
 }

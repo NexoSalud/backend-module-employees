@@ -18,4 +18,5 @@ public class CreateUserRequest {
     // attributes: map from attribute name -> list of values
     private Map<String, List<String>> attributes;
     private String password;
+    private Integer rol_id;
 }

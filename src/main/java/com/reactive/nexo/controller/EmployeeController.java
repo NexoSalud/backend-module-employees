@@ -53,6 +53,14 @@ private EmployeeService employeeService;
                 .defaultIfEmpty(ResponseEntity.badRequest().build());
     }
 
+    @PatchMapping("/{employeeId}")
+    public Mono<ResponseEntity<Employee>> patchEmployeeById(@PathVariable Integer employeeId, @RequestBody com.reactive.nexo.dto.CreateUserRequest request){
+        return employeeService.partialUpdateEmployee(employeeId, request)
+                .map(updatedEmployee -> ResponseEntity.ok(updatedEmployee))
+                .onErrorResume(err -> Mono.just(ResponseEntity.status(HttpStatus.CONFLICT).build()))
+                .defaultIfEmpty(ResponseEntity.notFound().build());
+    }
+
     @DeleteMapping("/{employeeId}")
     public Mono<ResponseEntity<Void>> deleteEmployeeById(@PathVariable Integer employeeId){
         return employeeService.deleteEmployee(employeeId)

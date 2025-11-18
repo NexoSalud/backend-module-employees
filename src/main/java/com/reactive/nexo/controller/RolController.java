@@ -1,7 +1,7 @@
 package com.reactive.nexo.controller;
 
-import com.reactive.nexo.dto.RolWithPermisosDTO;
-import com.reactive.nexo.model.Permiso;
+import com.reactive.nexo.dto.RolWithPermissionDTO;
+import com.reactive.nexo.model.Permission;
 import com.reactive.nexo.model.Rol;
 import com.reactive.nexo.service.RolService;
 import lombok.extern.slf4j.Slf4j;
@@ -30,18 +30,18 @@ public class RolController {
     }
 
     /**
-     * GET /api/v1/rols/{rolId} — obtiene un rol con todos sus permisos
+     * GET /api/v1/rols/{rolId} — obtiene un rol con todos sus permissions
      * Response:
      * {
      *     "id": 1,
      *     "nombre": "Admin",
-     *     "permisos": ["crear", "editar", "eliminar", ...]
+     *     "permissions": ["crear", "editar", "eliminar", ...]
      * }
      */
     @GetMapping("/{rolId}")
-    public Mono<ResponseEntity<RolWithPermisosDTO>> getRolWithPermisos(@PathVariable Integer rolId) {
-        log.info("GET /api/v1/rols/{} - fetching role with permisos", rolId);
-        return rolService.getRolWithPermisos(rolId)
+    public Mono<ResponseEntity<RolWithPermissionDTO>> getRolWithPermissions(@PathVariable Integer rolId) {
+        log.info("GET /api/v1/rols/{} - fetching role with permissions", rolId);
+        return rolService.getRolWithPermissions(rolId)
             .map(ResponseEntity::ok)
             .onErrorResume(error -> {
                 log.error("Error fetching rol: {}", error.getMessage());
@@ -94,28 +94,28 @@ public class RolController {
     /**
      * POST /api/v1/rols/{rolId}/permisos — crea un permiso para un rol
      */
-    @PostMapping("/{rolId}/permisos")
-    public Mono<ResponseEntity<Permiso>> createPermiso(@PathVariable Integer rolId, @RequestBody Permiso permiso) {
-        log.info("POST /api/v1/rols/{}/permisos - creating permiso={}", rolId, permiso.getPermiso());
-        permiso.setRol_id(rolId);
-        return rolService.createPermiso(permiso)
+    @PostMapping("/{rolId}/permission")
+    public Mono<ResponseEntity<Permission>> createPermission(@PathVariable Integer rolId, @RequestBody Permission permission) {
+        log.info("POST /api/v1/rols/{}/permission - creating permission endpoint={} method={}", rolId, permission.getEndpoint(), permission.getMethod());
+        permission.setRol_id(rolId);
+        return rolService.createPermission(permission)
             .map(created -> ResponseEntity.status(HttpStatus.CREATED).body(created))
             .onErrorResume(error -> {
-                log.error("Error creating permiso: {}", error.getMessage());
+                log.error("Error creating permission: {}", error.getMessage());
                 return Mono.just(ResponseEntity.status(HttpStatus.CONFLICT).build());
             });
     }
 
     /**
-     * DELETE /api/v1/rols/{rolId}/permisos/{permisoId} — elimina un permiso
+     * DELETE /api/v1/rols/{rolId}/permission/{permissionId} — elimina un permission
      */
-    @DeleteMapping("/{rolId}/permisos/{permisoId}")
-    public Mono<ResponseEntity<Void>> deletePermiso(@PathVariable Integer rolId, @PathVariable Integer permisoId) {
-        log.info("DELETE /api/v1/rols/{}/permisos/{} - deleting permiso", rolId, permisoId);
-        return rolService.deletePermiso(permisoId)
+    @DeleteMapping("/{rolId}/permission/{permissionId}")
+    public Mono<ResponseEntity<Void>> deletePermission(@PathVariable Integer rolId, @PathVariable Integer permissionId) {
+        log.info("DELETE /api/v1/rols/{}/permission/{} - deleting permission", rolId, permissionId);
+        return rolService.deletePermission(permissionId)
             .then(Mono.just(ResponseEntity.ok().<Void>build()))
             .onErrorResume(error -> {
-                log.error("Error deleting permiso: {}", error.getMessage());
+                log.error("Error deleting permission: {}", error.getMessage());
                 return Mono.just(ResponseEntity.notFound().build());
             });
     }

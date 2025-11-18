@@ -10,11 +10,11 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class RolWithPermisosDTO {
+public class RolWithPermissionDTO {
 
     private Integer id;
     private String nombre;
     
-    @JsonProperty("permisos")
-    private List<String> permisos;
+    @JsonProperty("permission")
+    private List<String> permission;
 }
