@@ -6,16 +6,21 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
+import java.util.Map;
+import java.util.Arrays;
+import java.util.List;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Table("permiso")
-public class Permiso {
+@Table("permission")
+public class Permission {
 
     @Id
     private Integer id;
     @Column("rol_id")
     private Integer rol_id;
-    private String permiso;
+    private String method;
+    private String endpoint;
+    private List<Map<String, List<String>>> permissions;
 }

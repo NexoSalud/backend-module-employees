@@ -20,7 +20,7 @@ public class Employee {
     private String lastnames;
     private String identification_type;
     private String identification_number;
-    @ToString.Exclude
+    //@ToString.Exclude
     private String password;
     private Integer rol_id;
 
@@ -31,7 +31,7 @@ public class Employee {
         this.lastnames = lastnames;
         this.identification_type = identification_type;
         this.identification_number = identification_number;
-        this.password = null;
-        this.rol_id = null;
+        this.password = password;
+        this.rol_id = rol_id;
     }
 }

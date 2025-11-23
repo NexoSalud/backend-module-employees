@@ -1,15 +1,19 @@
 package com.reactive.nexo.service;
 
-import com.reactive.nexo.dto.RolWithPermisosDTO;
-import com.reactive.nexo.model.Permiso;
+import com.reactive.nexo.dto.RolWithPermissionDTO;
+import com.reactive.nexo.model.Permission;
 import com.reactive.nexo.model.Rol;
-import com.reactive.nexo.repository.PermisoRepository;
+import com.reactive.nexo.repository.PermissionRepository;
 import com.reactive.nexo.repository.RolRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -19,7 +23,7 @@ public class RolService {
     private RolRepository rolRepository;
 
     @Autowired
-    private PermisoRepository permisoRepository;
+    private PermissionRepository permissionRepository;
 
     /**
      * Obtener todos los roles
@@ -38,22 +42,52 @@ public class RolService {
     }
 
     /**
-     * Obtener un rol con todos sus permisos por ID
+     * Obtener un rol con todos sus permissions por ID
      */
-    public Mono<RolWithPermisosDTO> getRolWithPermisos(Integer rolId) {
-        log.info("getRolWithPermisos - fetching role with permisos, rolId={}", rolId);
+    /*public Mono<RolWithPermissionDTO> getRolWithPermissions(Integer rolId) {
+        log.info("getRolWithPermissions - fetching role with permissions, rolId={}", rolId);
         return rolRepository.findById(rolId)
             .flatMap(rol -> 
-                permisoRepository.findByRolId(rolId)
-                    .map(Permiso::getPermiso)
+                permissionRepository.findByRolId(rolId)
+                    .map(Permission::getMethod)
                     .collectList()
-                    .map(permisos -> new RolWithPermisosDTO(rol.getId(), rol.getNombre(), permisos))
+                    .map(permissions -> new RolWithPermissionDTO(rol.getId(), rol.getNombre(), permissions))
             )
-            .doOnSuccess(result -> log.info("getRolWithPermisos - successfully fetched role with {} permisos", 
-                result.getPermisos() != null ? result.getPermisos().size() : 0))
-            .doOnError(error -> log.error("getRolWithPermisos - error fetching role: {}", error.getMessage()));
-    }
+            .doOnSuccess(result -> log.info("getRolWithPermissions - successfully fetched role with {} permissions", 
+                result.getPermission() != null ? result.getPermission().size() : 0))
+            .doOnError(error -> log.error("getRolWithPermissions - error fetching role: {}", error.getMessage()));
+    }*/
 
+    public Mono<RolWithPermissionDTO> getRolWithPermissions(Integer rolId) {
+        log.info("getRolWithPermissions - fetching role with permissions, rolId={}", rolId);
+
+        Mono<Rol> rolMono = rolRepository.findById(rolId);
+        
+        // Creamos un Mono que agrupa todos los permisos por método (GET -> [e1, e2], POST -> [e3])
+        Mono<Map<String, List<String>>> permissionsMapMono = permissionRepository.findByRolId(rolId)
+            .collectMultimap(Permission::getMethod, Permission::getEndpoint)
+            // Convertimos Multimap (que usa Collection) a un Map estándar (que usa List)
+            .map(multimap -> multimap.entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, entry -> List.copyOf(entry.getValue())))
+            );
+
+        // Combinamos el Rol y el Mapa de Permisos cuando ambos estén listos
+        return Mono.zip(rolMono, permissionsMapMono)
+            .map(tuple -> {
+                Rol rol = tuple.getT1();
+                Map<String, List<String>> permissionMap = tuple.getT2();
+
+                // Transformamos el mapa a la lista de objetos JSON [{Method: [Endpoint]}, ...]
+                List<Map<String, List<String>>> formattedPermissions = permissionMap.entrySet().stream()
+                    .map(entry -> Collections.singletonMap(entry.getKey(), entry.getValue()))
+                    .collect(Collectors.toList());
+
+                return new RolWithPermissionDTO(rol.getId(), rol.getNombre(), formattedPermissions);
+            })
+            .doOnSuccess(result -> log.info("getRolWithPermissions - successfully fetched role with {} method groups", 
+                result.getPermissions() != null ? result.getPermissions().size() : 0))
+            .doOnError(error -> log.error("getRolWithPermissions - error fetching role: {}", error.getMessage()));
+    }
     /**
      * Crear un nuevo rol
      */
@@ -65,13 +99,13 @@ public class RolService {
     }
 
     /**
-     * Crear un permiso para un rol
+     * Crear un permission para un rol
      */
-    public Mono<Permiso> createPermiso(Permiso permiso) {
-        log.info("createPermiso - creating permiso={} for rolId={}", permiso.getPermiso(), permiso.getRol_id());
-        return permisoRepository.save(permiso)
-            .doOnSuccess(saved -> log.info("createPermiso - permiso created with id={}", saved.getId()))
-            .doOnError(error -> log.error("createPermiso - error creating permiso: {}", error.getMessage()));
+    public Mono<Permission> createPermission(Permission permission) {
+        log.info("createPermission - creating permission={} for rolId={}", permission.getPermissions(), permission.getRol_id());
+        return permissionRepository.save(permission)
+            .doOnSuccess(saved -> log.info("createPermission - permission created with id={}", saved.getId()))
+            .doOnError(error -> log.error("createPermission - error creating permission: {}", error.getMessage()));
     }
 
     /**
@@ -99,12 +133,12 @@ public class RolService {
     }
 
     /**
-     * Eliminar un permiso
+     * Eliminar un permission
      */
-    public Mono<Void> deletePermiso(Integer permisoId) {
-        log.info("deletePermiso - deleting permiso id={}", permisoId);
-        return permisoRepository.deleteById(permisoId)
-            .doOnSuccess(v -> log.info("deletePermiso - permiso deleted"))
-            .doOnError(error -> log.error("deletePermiso - error deleting permiso: {}", error.getMessage()));
+    public Mono<Void> deletePermission(Integer permissionId) {
+        log.info("deletePermission - deleting permission id={}", permissionId);
+        return permissionRepository.deleteById(permissionId)
+            .doOnSuccess(v -> log.info("deletePermission - permission deleted"))
+            .doOnError(error -> log.error("deletePermission - error deleting permission: {}", error.getMessage()));
     }
 }

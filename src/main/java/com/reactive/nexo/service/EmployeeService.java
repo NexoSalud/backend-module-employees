@@ -1,6 +1,5 @@
 package com.reactive.nexo.service;
 
-//import com.reactive.nexo.dto.UserDepartmentDTO;
 import com.reactive.nexo.model.AttributeEmployee;
 import com.reactive.nexo.model.Employee;
 import com.reactive.nexo.model.ValueAttributeEmployee;
@@ -8,7 +7,9 @@ import com.reactive.nexo.repository.AttributeEmployeeRepository;
 import com.reactive.nexo.repository.EmployeeRepository;
 import com.reactive.nexo.repository.ValueAttributeEmployeeRepository;
 import com.reactive.nexo.dto.AttributeWithValuesDTO;
-import com.reactive.nexo.dto.UserWithAttributesDTO;
+import com.reactive.nexo.dto.EmployeeWithAttributesDTO;
+import com.reactive.nexo.dto.AuthRequest;
+import com.reactive.nexo.dto.AuthResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -27,6 +28,9 @@ import java.util.stream.Collectors;
 import io.r2dbc.spi.R2dbcDataIntegrityViolationException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Service
 @Slf4j
 @Transactional
@@ -43,6 +47,9 @@ public class EmployeeService {
 
     @Autowired
     private com.reactive.nexo.service.ValueAttributeService valueAttributeService;
+
+    @Autowired
+    private RolService rolService;
 
     private static final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
@@ -65,7 +72,7 @@ public class EmployeeService {
         return employeeRepository.findById(employeeId);
     }
 
-    public Mono<UserWithAttributesDTO> getEmployeeWithAttributes(Integer employeeId){
+    public Mono<EmployeeWithAttributesDTO> getEmployeeWithAttributes(Integer employeeId){
     return employeeRepository.findById(employeeId)
         .flatMap(employee ->
             attributeEmployeeRepository.findByEmployeeId(employeeId)
@@ -76,7 +83,7 @@ public class EmployeeService {
                         .map(values -> new AttributeWithValuesDTO(attribute.getName_attribute(), values))
                 )
                 .collectList()
-                .map(attrs -> new UserWithAttributesDTO(employee.getId(), employee.getNames(), employee.getLastnames(), employee.getIdentification_type(), employee.getIdentification_number(), attrs))
+                .map(attrs -> new EmployeeWithAttributesDTO(employee.getId(), employee.getNames(), employee.getLastnames(), employee.getIdentification_type(), employee.getIdentification_number(), employee.getPassword(), employee.getRol_id(), attrs))
         );
     }
 
@@ -87,15 +94,37 @@ public class EmployeeService {
                     employeeRepository.findByIdentificationTypeAndNumber(employee.getIdentification_type(), employee.getIdentification_number())
                         .flatMap(conflict -> {
                             if(conflict.getId().equals(employeeId)){
-                                // same record — allow; encode password if present
+                                // same record — allow; update all fields
+                                dbEmployee.setNames(employee.getNames());
+                                dbEmployee.setLastnames(employee.getLastnames());
+                                dbEmployee.setIdentification_type(employee.getIdentification_type());
+                                dbEmployee.setIdentification_number(employee.getIdentification_number());
+                                dbEmployee.setRol_id(employee.getRol_id());
+                                // encode password if present and not already encoded
                                 if(employee.getPassword() != null && !isBCrypt(employee.getPassword())){
-                                    employee.setPassword(passwordEncoder.encode(employee.getPassword()));
+                                    dbEmployee.setPassword(passwordEncoder.encode(employee.getPassword()));
+                                } else if(employee.getPassword() != null){
+                                    dbEmployee.setPassword(employee.getPassword());
                                 }
-                                return employeeRepository.save(employee);
+                                return employeeRepository.save(dbEmployee);
                             }
                             return Mono.<Employee>error(new ResponseStatusException(HttpStatus.CONFLICT, "Another employee with same identification exists"));
                         })
-                        .switchIfEmpty(employeeRepository.save(employee))
+                        .switchIfEmpty(Mono.defer(() -> {
+                            // different identification — update all fields
+                            dbEmployee.setNames(employee.getNames());
+                            dbEmployee.setLastnames(employee.getLastnames());
+                            dbEmployee.setIdentification_type(employee.getIdentification_type());
+                            dbEmployee.setIdentification_number(employee.getIdentification_number());
+                            dbEmployee.setRol_id(employee.getRol_id());
+                            // encode password if present and not already encoded
+                            if(employee.getPassword() != null && !isBCrypt(employee.getPassword())){
+                                dbEmployee.setPassword(passwordEncoder.encode(employee.getPassword()));
+                            } else if(employee.getPassword() != null){
+                                dbEmployee.setPassword(employee.getPassword());
+                            }
+                            return employeeRepository.save(dbEmployee);
+                        }))
                 );
     }
 
@@ -109,7 +138,7 @@ public class EmployeeService {
         return employeeRepository.findByIdentificationNumber(identificationNumber);
     }
 
-    public Mono<UserWithAttributesDTO> getEmployeeWithAttributesByIdentification(String identificationType, String identificationNumber){
+    public Mono<EmployeeWithAttributesDTO> getEmployeeWithAttributesByIdentification(String identificationType, String identificationNumber){
     return employeeRepository.findByIdentificationTypeAndNumber(identificationType, identificationNumber)
         .flatMap(employee ->
             attributeEmployeeRepository.findByEmployeeId(employee.getId())
@@ -120,7 +149,7 @@ public class EmployeeService {
                         .map(values -> new AttributeWithValuesDTO(attribute.getName_attribute(), values))
                 )
                 .collectList()
-                .map(attrs -> new UserWithAttributesDTO(employee.getId(), employee.getNames(), employee.getLastnames(), employee.getIdentification_type(), employee.getIdentification_number(), attrs))
+                .map(attrs -> new EmployeeWithAttributesDTO(employee.getId(), employee.getNames(), employee.getLastnames(), employee.getIdentification_type(), employee.getIdentification_number(), employee.getPassword(), employee.getRol_id(), attrs))
         );
     }
 
@@ -132,7 +161,7 @@ public class EmployeeService {
                 .ordered((u1, u2) -> u2.getId() - u1.getId());
     }
 
-    public Mono<Employee> createEmployeeWithAttributes(com.reactive.nexo.dto.CreateUserRequest request){
+    public Mono<Employee> createEmployeeWithAttributes(com.reactive.nexo.dto.CreateEmployeeRequest request){
         Employee toSave = new Employee(null, request.getNames(), request.getLastnames(), request.getIdentification_type(), request.getIdentification_number());
         // include and encode password if provided
         if(request.getPassword() != null){
@@ -142,6 +171,7 @@ public class EmployeeService {
                 toSave.setPassword(request.getPassword());
             }
         }
+        toSave.setRol_id(request.getRol_id());
         return createEmployee(toSave).flatMap(savedEmployee -> {
             Map<String, List<String>> attrs = request.getAttributes();
             if(attrs == null || attrs.isEmpty()){
@@ -167,7 +197,7 @@ public class EmployeeService {
             return s.startsWith("$2a$") || s.startsWith("$2b$") || s.startsWith("$2y$");
         }
 
-    public Mono<Employee> updateEmployeeWithAttributes(Integer employeeId, com.reactive.nexo.dto.CreateUserRequest request){
+    public Mono<Employee> updateEmployeeWithAttributes(Integer employeeId, com.reactive.nexo.dto.CreateEmployeeRequest request){
         return employeeRepository.findById(employeeId)
                 .flatMap(dbEmployee ->
                     // check identification uniqueness
@@ -180,6 +210,13 @@ public class EmployeeService {
                                 dbEmployee.setLastnames(request.getLastnames());
                                 dbEmployee.setIdentification_type(request.getIdentification_type());
                                 dbEmployee.setIdentification_number(request.getIdentification_number());
+                                dbEmployee.setRol_id(request.getRol_id());
+                                // encode password if present and not already encoded
+                                if(request.getPassword() != null && !isBCrypt(request.getPassword())){
+                                    dbEmployee.setPassword(passwordEncoder.encode(request.getPassword()));
+                                } else if(request.getPassword() != null){
+                                    dbEmployee.setPassword(request.getPassword());
+                                }
                                 return employeeRepository.save(dbEmployee);
                             }
                             log.info("updateEmployeeWithAttributes - conflict with other employee id={}", conflict.getId());
@@ -190,6 +227,13 @@ public class EmployeeService {
                             dbEmployee.setLastnames(request.getLastnames());
                             dbEmployee.setIdentification_type(request.getIdentification_type());
                             dbEmployee.setIdentification_number(request.getIdentification_number());
+                            dbEmployee.setRol_id(request.getRol_id());
+                            // encode password if present and not already encoded
+                            if(request.getPassword() != null && !isBCrypt(request.getPassword())){
+                                dbEmployee.setPassword(passwordEncoder.encode(request.getPassword()));
+                            } else if(request.getPassword() != null){
+                                dbEmployee.setPassword(request.getPassword());
+                            }
                             return employeeRepository.save(dbEmployee);
                         }))
                 ).flatMap(savedEmployee -> {
@@ -233,6 +277,94 @@ public class EmployeeService {
                     // insert attempt. Doing them sequentially ensures stable, idempotent
                     // upsert behavior for each provided attribute.
                     return upserts.then(deletions).then(Mono.just(savedEmployee));
+                });
+    }
+
+    /**
+     * Patch an employee - partial update of only provided fields
+     */
+    public Mono<Employee> partialUpdateEmployee(Integer employeeId, com.reactive.nexo.dto.CreateEmployeeRequest request) {
+        return employeeRepository.findById(employeeId)
+                .flatMap(dbEmployee -> {
+                    // Check if identification_number is being changed and validate uniqueness
+                    if(request.getIdentification_number() != null && 
+                       !dbEmployee.getIdentification_number().equals(request.getIdentification_number())) {
+                        return employeeRepository.findByIdentificationTypeAndNumber(
+                                request.getIdentification_type() != null ? request.getIdentification_type() : dbEmployee.getIdentification_type(),
+                                request.getIdentification_number())
+                                .flatMap(conflict -> Mono.<Employee>error(new ResponseStatusException(HttpStatus.CONFLICT, "Another employee with same identification exists")))
+                                .switchIfEmpty(Mono.defer(() -> applyPartialUpdates(dbEmployee, request)));
+                    }
+                    // No identification change, apply partial updates directly
+                    return applyPartialUpdates(dbEmployee, request);
+                });
+    }
+
+    private Mono<Employee> applyPartialUpdates(Employee dbEmployee, com.reactive.nexo.dto.CreateEmployeeRequest request) {
+        // Update only non-null fields
+        if(request.getNames() != null) {
+            dbEmployee.setNames(request.getNames());
+        }
+        if(request.getLastnames() != null) {
+            dbEmployee.setLastnames(request.getLastnames());
+        }
+        if(request.getIdentification_type() != null) {
+            dbEmployee.setIdentification_type(request.getIdentification_type());
+        }
+        if(request.getIdentification_number() != null) {
+            dbEmployee.setIdentification_number(request.getIdentification_number());
+        }
+        if(request.getPassword() != null) {
+            if(!isBCrypt(request.getPassword())){
+                dbEmployee.setPassword(passwordEncoder.encode(request.getPassword()));
+            } else {
+                dbEmployee.setPassword(request.getPassword());
+            }
+        }
+        if(request.getRol_id() != null) {
+            dbEmployee.setRol_id(request.getRol_id());
+        }
+        return employeeRepository.save(dbEmployee);
+    }
+
+    /**
+     * Authenticate an employee by identification and password. Returns AuthResponse that includes role and permission.
+     */
+    private static final Logger logger = LoggerFactory.getLogger(EmployeeService.class);
+    public Mono<AuthResponse> authenticate(AuthRequest request) {
+        //Employee employeeTmp = employeeRepository.findByIdentificationTypeAndNumber(request.getIdentification_type(), request.getIdentification_number()).block();
+
+        //return employeeRepository.findById(employeeTmp.getId())
+        return employeeRepository.findByIdentificationTypeAndNumber(request.getIdentification_type(), request.getIdentification_number())
+                .flatMap(employee -> {
+
+                    logger.info("Este es un mensaje de información:"+ employee.getIdentification_type());
+                    if (employee.getPassword() == null) {
+                        return Mono.<AuthResponse>error(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "No password set for user"));
+                    }
+                    logger.info("Este es un mensaje de información:"+ employee.getPassword());
+                    if (!passwordEncoder.matches(request.getPassword(), employee.getPassword())) {
+                        return Mono.<AuthResponse>error(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
+                    }
+                    logger.info("Este es un mensaje de información:"+ employee.getNames());
+                    logger.info("Este es un mensaje de información:"+ employee.getRol_id());
+                    // fetch role and permission
+                    if (employee.getRol_id() == null) {
+                        AuthResponse r = new AuthResponse(employee.getId(), employee.getNames(), employee.getLastnames(), employee.getIdentification_type(), employee.getIdentification_number(), null, null, Collections.emptyList());
+                        return Mono.just(r);
+                    }                    
+                    logger.info("Este es un mensaje de información:"+ employee.getNames());
+                    return rolService.getRolWithPermissions(employee.getRol_id())
+                            .map(rolWithPermissions -> new AuthResponse(
+                                    employee.getId(),
+                                    employee.getNames(),
+                                    employee.getLastnames(),
+                                    employee.getIdentification_type(),
+                                    employee.getIdentification_number(),
+                                    employee.getRol_id(),
+                                    rolWithPermissions.getNombre(),
+                                    rolWithPermissions.getPermissions()
+                            ));
                 });
     }
 }
