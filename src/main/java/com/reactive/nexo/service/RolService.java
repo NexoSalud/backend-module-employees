@@ -10,6 +10,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -40,20 +44,50 @@ public class RolService {
     /**
      * Obtener un rol con todos sus permissions por ID
      */
-    public Mono<RolWithPermissionDTO> getRolWithPermissions(Integer rolId) {
+    /*public Mono<RolWithPermissionDTO> getRolWithPermissions(Integer rolId) {
         log.info("getRolWithPermissions - fetching role with permissions, rolId={}", rolId);
         return rolRepository.findById(rolId)
             .flatMap(rol -> 
                 permissionRepository.findByRolId(rolId)
-                    .map(Permission::getPermission)
+                    .map(Permission::getMethod)
                     .collectList()
                     .map(permissions -> new RolWithPermissionDTO(rol.getId(), rol.getNombre(), permissions))
             )
             .doOnSuccess(result -> log.info("getRolWithPermissions - successfully fetched role with {} permissions", 
                 result.getPermission() != null ? result.getPermission().size() : 0))
             .doOnError(error -> log.error("getRolWithPermissions - error fetching role: {}", error.getMessage()));
-    }
+    }*/
 
+    public Mono<RolWithPermissionDTO> getRolWithPermissions(Integer rolId) {
+        log.info("getRolWithPermissions - fetching role with permissions, rolId={}", rolId);
+
+        Mono<Rol> rolMono = rolRepository.findById(rolId);
+        
+        // Creamos un Mono que agrupa todos los permisos por método (GET -> [e1, e2], POST -> [e3])
+        Mono<Map<String, List<String>>> permissionsMapMono = permissionRepository.findByRolId(rolId)
+            .collectMultimap(Permission::getMethod, Permission::getEndpoint)
+            // Convertimos Multimap (que usa Collection) a un Map estándar (que usa List)
+            .map(multimap -> multimap.entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, entry -> List.copyOf(entry.getValue())))
+            );
+
+        // Combinamos el Rol y el Mapa de Permisos cuando ambos estén listos
+        return Mono.zip(rolMono, permissionsMapMono)
+            .map(tuple -> {
+                Rol rol = tuple.getT1();
+                Map<String, List<String>> permissionMap = tuple.getT2();
+
+                // Transformamos el mapa a la lista de objetos JSON [{Method: [Endpoint]}, ...]
+                List<Map<String, List<String>>> formattedPermissions = permissionMap.entrySet().stream()
+                    .map(entry -> Collections.singletonMap(entry.getKey(), entry.getValue()))
+                    .collect(Collectors.toList());
+
+                return new RolWithPermissionDTO(rol.getId(), rol.getNombre(), formattedPermissions);
+            })
+            .doOnSuccess(result -> log.info("getRolWithPermissions - successfully fetched role with {} method groups", 
+                result.getPermissions() != null ? result.getPermissions().size() : 0))
+            .doOnError(error -> log.error("getRolWithPermissions - error fetching role: {}", error.getMessage()));
+    }
     /**
      * Crear un nuevo rol
      */
@@ -68,7 +102,7 @@ public class RolService {
      * Crear un permission para un rol
      */
     public Mono<Permission> createPermission(Permission permission) {
-        log.info("createPermission - creating permission={} for rolId={}", permission.getPermission(), permission.getRol_id());
+        log.info("createPermission - creating permission={} for rolId={}", permission.getPermissions(), permission.getRol_id());
         return permissionRepository.save(permission)
             .doOnSuccess(saved -> log.info("createPermission - permission created with id={}", saved.getId()))
             .doOnError(error -> log.error("createPermission - error creating permission: {}", error.getMessage()));

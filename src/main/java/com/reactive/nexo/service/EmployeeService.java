@@ -1,6 +1,5 @@
 package com.reactive.nexo.service;
 
-//import com.reactive.nexo.dto.UserDepartmentDTO;
 import com.reactive.nexo.model.AttributeEmployee;
 import com.reactive.nexo.model.Employee;
 import com.reactive.nexo.model.ValueAttributeEmployee;
@@ -8,7 +7,7 @@ import com.reactive.nexo.repository.AttributeEmployeeRepository;
 import com.reactive.nexo.repository.EmployeeRepository;
 import com.reactive.nexo.repository.ValueAttributeEmployeeRepository;
 import com.reactive.nexo.dto.AttributeWithValuesDTO;
-import com.reactive.nexo.dto.UserWithAttributesDTO;
+import com.reactive.nexo.dto.EmployeeWithAttributesDTO;
 import com.reactive.nexo.dto.AuthRequest;
 import com.reactive.nexo.dto.AuthResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +27,9 @@ import java.util.Collections;
 import java.util.stream.Collectors;
 import io.r2dbc.spi.R2dbcDataIntegrityViolationException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 @Slf4j
@@ -70,7 +72,7 @@ public class EmployeeService {
         return employeeRepository.findById(employeeId);
     }
 
-    public Mono<UserWithAttributesDTO> getEmployeeWithAttributes(Integer employeeId){
+    public Mono<EmployeeWithAttributesDTO> getEmployeeWithAttributes(Integer employeeId){
     return employeeRepository.findById(employeeId)
         .flatMap(employee ->
             attributeEmployeeRepository.findByEmployeeId(employeeId)
@@ -81,7 +83,7 @@ public class EmployeeService {
                         .map(values -> new AttributeWithValuesDTO(attribute.getName_attribute(), values))
                 )
                 .collectList()
-                .map(attrs -> new UserWithAttributesDTO(employee.getId(), employee.getNames(), employee.getLastnames(), employee.getIdentification_type(), employee.getIdentification_number(), attrs))
+                .map(attrs -> new EmployeeWithAttributesDTO(employee.getId(), employee.getNames(), employee.getLastnames(), employee.getIdentification_type(), employee.getIdentification_number(), employee.getPassword(), employee.getRol_id(), attrs))
         );
     }
 
@@ -136,7 +138,7 @@ public class EmployeeService {
         return employeeRepository.findByIdentificationNumber(identificationNumber);
     }
 
-    public Mono<UserWithAttributesDTO> getEmployeeWithAttributesByIdentification(String identificationType, String identificationNumber){
+    public Mono<EmployeeWithAttributesDTO> getEmployeeWithAttributesByIdentification(String identificationType, String identificationNumber){
     return employeeRepository.findByIdentificationTypeAndNumber(identificationType, identificationNumber)
         .flatMap(employee ->
             attributeEmployeeRepository.findByEmployeeId(employee.getId())
@@ -147,7 +149,7 @@ public class EmployeeService {
                         .map(values -> new AttributeWithValuesDTO(attribute.getName_attribute(), values))
                 )
                 .collectList()
-                .map(attrs -> new UserWithAttributesDTO(employee.getId(), employee.getNames(), employee.getLastnames(), employee.getIdentification_type(), employee.getIdentification_number(), attrs))
+                .map(attrs -> new EmployeeWithAttributesDTO(employee.getId(), employee.getNames(), employee.getLastnames(), employee.getIdentification_type(), employee.getIdentification_number(), employee.getPassword(), employee.getRol_id(), attrs))
         );
     }
 
@@ -159,7 +161,7 @@ public class EmployeeService {
                 .ordered((u1, u2) -> u2.getId() - u1.getId());
     }
 
-    public Mono<Employee> createEmployeeWithAttributes(com.reactive.nexo.dto.CreateUserRequest request){
+    public Mono<Employee> createEmployeeWithAttributes(com.reactive.nexo.dto.CreateEmployeeRequest request){
         Employee toSave = new Employee(null, request.getNames(), request.getLastnames(), request.getIdentification_type(), request.getIdentification_number());
         // include and encode password if provided
         if(request.getPassword() != null){
@@ -169,6 +171,7 @@ public class EmployeeService {
                 toSave.setPassword(request.getPassword());
             }
         }
+        toSave.setRol_id(request.getRol_id());
         return createEmployee(toSave).flatMap(savedEmployee -> {
             Map<String, List<String>> attrs = request.getAttributes();
             if(attrs == null || attrs.isEmpty()){
@@ -194,7 +197,7 @@ public class EmployeeService {
             return s.startsWith("$2a$") || s.startsWith("$2b$") || s.startsWith("$2y$");
         }
 
-    public Mono<Employee> updateEmployeeWithAttributes(Integer employeeId, com.reactive.nexo.dto.CreateUserRequest request){
+    public Mono<Employee> updateEmployeeWithAttributes(Integer employeeId, com.reactive.nexo.dto.CreateEmployeeRequest request){
         return employeeRepository.findById(employeeId)
                 .flatMap(dbEmployee ->
                     // check identification uniqueness
@@ -280,7 +283,7 @@ public class EmployeeService {
     /**
      * Patch an employee - partial update of only provided fields
      */
-    public Mono<Employee> partialUpdateEmployee(Integer employeeId, com.reactive.nexo.dto.CreateUserRequest request) {
+    public Mono<Employee> partialUpdateEmployee(Integer employeeId, com.reactive.nexo.dto.CreateEmployeeRequest request) {
         return employeeRepository.findById(employeeId)
                 .flatMap(dbEmployee -> {
                     // Check if identification_number is being changed and validate uniqueness
@@ -297,7 +300,7 @@ public class EmployeeService {
                 });
     }
 
-    private Mono<Employee> applyPartialUpdates(Employee dbEmployee, com.reactive.nexo.dto.CreateUserRequest request) {
+    private Mono<Employee> applyPartialUpdates(Employee dbEmployee, com.reactive.nexo.dto.CreateEmployeeRequest request) {
         // Update only non-null fields
         if(request.getNames() != null) {
             dbEmployee.setNames(request.getNames());
@@ -327,20 +330,30 @@ public class EmployeeService {
     /**
      * Authenticate an employee by identification and password. Returns AuthResponse that includes role and permission.
      */
+    private static final Logger logger = LoggerFactory.getLogger(EmployeeService.class);
     public Mono<AuthResponse> authenticate(AuthRequest request) {
+        //Employee employeeTmp = employeeRepository.findByIdentificationTypeAndNumber(request.getIdentification_type(), request.getIdentification_number()).block();
+
+        //return employeeRepository.findById(employeeTmp.getId())
         return employeeRepository.findByIdentificationTypeAndNumber(request.getIdentification_type(), request.getIdentification_number())
                 .flatMap(employee -> {
-                    /*if (employee.getPassword() == null) {
+
+                    logger.info("Este es un mensaje de información:"+ employee.getIdentification_type());
+                    if (employee.getPassword() == null) {
                         return Mono.<AuthResponse>error(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "No password set for user"));
                     }
-                    /*if (!passwordEncoder.matches(request.getPassword(), employee.getPassword())) {
+                    logger.info("Este es un mensaje de información:"+ employee.getPassword());
+                    if (!passwordEncoder.matches(request.getPassword(), employee.getPassword())) {
                         return Mono.<AuthResponse>error(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
-                    }*/
+                    }
+                    logger.info("Este es un mensaje de información:"+ employee.getNames());
+                    logger.info("Este es un mensaje de información:"+ employee.getRol_id());
                     // fetch role and permission
                     if (employee.getRol_id() == null) {
                         AuthResponse r = new AuthResponse(employee.getId(), employee.getNames(), employee.getLastnames(), employee.getIdentification_type(), employee.getIdentification_number(), null, null, Collections.emptyList());
                         return Mono.just(r);
-                    }
+                    }                    
+                    logger.info("Este es un mensaje de información:"+ employee.getNames());
                     return rolService.getRolWithPermissions(employee.getRol_id())
                             .map(rolWithPermissions -> new AuthResponse(
                                     employee.getId(),
@@ -350,7 +363,7 @@ public class EmployeeService {
                                     employee.getIdentification_number(),
                                     employee.getRol_id(),
                                     rolWithPermissions.getNombre(),
-                                    rolWithPermissions.getPermission()
+                                    rolWithPermissions.getPermissions()
                             ));
                 });
     }

@@ -5,14 +5,18 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.util.Map;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class UserWithAttributesDTO {
-    private Integer id;
+public class CreateEmployeeRequest {
     private String names;
     private String lastnames;
     private String identification_type;
-    private List<AttributeWithValuesDTO> attributes;
+    private String identification_number;
+    private String password;
+    private Integer rol_id;
+    // attributes: map from attribute name -> list of values
+    private Map<String, List<String>> attributes;
 }

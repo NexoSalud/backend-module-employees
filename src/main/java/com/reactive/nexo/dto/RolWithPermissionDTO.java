@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
+import java.util.Map;
 import java.util.List;
 
 @Data
@@ -16,5 +16,6 @@ public class RolWithPermissionDTO {
     private String nombre;
     
     @JsonProperty("permission")
-    private List<String> permission;
+    private List<Map<String, List<String>>> permissions;
+    //private List<String> permission;
 }
