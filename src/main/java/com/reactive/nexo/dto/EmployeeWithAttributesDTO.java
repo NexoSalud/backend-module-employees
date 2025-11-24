@@ -17,5 +17,6 @@ public class EmployeeWithAttributesDTO {
     private String identification_number;
     private String password;
     private Integer rol_id;
+    private String secret;
     private List<AttributeWithValuesDTO> attributes;
 }

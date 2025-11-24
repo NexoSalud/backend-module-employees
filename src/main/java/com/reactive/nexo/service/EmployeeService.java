@@ -83,7 +83,7 @@ public class EmployeeService {
                         .map(values -> new AttributeWithValuesDTO(attribute.getName_attribute(), values))
                 )
                 .collectList()
-                .map(attrs -> new EmployeeWithAttributesDTO(employee.getId(), employee.getNames(), employee.getLastnames(), employee.getIdentification_type(), employee.getIdentification_number(), employee.getPassword(), employee.getRol_id(), attrs))
+                .map(attrs -> new EmployeeWithAttributesDTO(employee.getId(), employee.getNames(), employee.getLastnames(), employee.getIdentification_type(), employee.getIdentification_number(), employee.getPassword(), employee.getRol_id(), employee.getSecret(), attrs))
         );
     }
 
@@ -149,7 +149,7 @@ public class EmployeeService {
                         .map(values -> new AttributeWithValuesDTO(attribute.getName_attribute(), values))
                 )
                 .collectList()
-                .map(attrs -> new EmployeeWithAttributesDTO(employee.getId(), employee.getNames(), employee.getLastnames(), employee.getIdentification_type(), employee.getIdentification_number(), employee.getPassword(), employee.getRol_id(), attrs))
+                .map(attrs -> new EmployeeWithAttributesDTO(employee.getId(), employee.getNames(), employee.getLastnames(), employee.getIdentification_type(), employee.getIdentification_number(), employee.getPassword(), employee.getRol_id(), employee.getSecret(), attrs))
         );
     }
 
@@ -323,6 +323,9 @@ public class EmployeeService {
         }
         if(request.getRol_id() != null) {
             dbEmployee.setRol_id(request.getRol_id());
+        }
+        if(request.getSecret() != null) {
+            dbEmployee.setSecret(request.getSecret());
         }
         return employeeRepository.save(dbEmployee);
     }
