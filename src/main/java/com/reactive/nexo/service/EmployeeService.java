@@ -351,9 +351,10 @@ public class EmployeeService {
                     }
                     logger.info("Este es un mensaje de información:"+ employee.getNames());
                     logger.info("Este es un mensaje de información:"+ employee.getRol_id());
+                    logger.info("Este es un mensaje de información:"+ employee.getSecret());
                     // fetch role and permission
                     if (employee.getRol_id() == null) {
-                        AuthResponse r = new AuthResponse(employee.getId(), employee.getNames(), employee.getLastnames(), employee.getIdentification_type(), employee.getIdentification_number(), null, null, Collections.emptyList());
+                        AuthResponse r = new AuthResponse(employee.getId(), employee.getNames(), employee.getLastnames(), employee.getIdentification_type(), employee.getIdentification_number(), null, null, null, Collections.emptyList());
                         return Mono.just(r);
                     }                    
                     logger.info("Este es un mensaje de información:"+ employee.getNames());
@@ -365,7 +366,8 @@ public class EmployeeService {
                                     employee.getIdentification_type(),
                                     employee.getIdentification_number(),
                                     employee.getRol_id(),
-                                    rolWithPermissions.getNombre(),
+                                    rolWithPermissions.getName(),
+                                    employee.getSecret(),
                                     rolWithPermissions.getPermissions()
                             ));
                 });

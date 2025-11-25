@@ -22,5 +22,7 @@ public class Permission {
     private Integer rol_id;
     private String method;
     private String endpoint;
-    private List<Map<String, List<String>>> permissions;
+    public List<Map<String, List<String>>> getPermissions() {
+        return Arrays.asList(Map.of(method, List.of()));
+    }   
 }

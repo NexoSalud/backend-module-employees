@@ -82,7 +82,7 @@ public class RolService {
                     .map(entry -> Collections.singletonMap(entry.getKey(), entry.getValue()))
                     .collect(Collectors.toList());
 
-                return new RolWithPermissionDTO(rol.getId(), rol.getNombre(), formattedPermissions);
+                return new RolWithPermissionDTO(rol.getId(), rol.getName(), formattedPermissions);
             })
             .doOnSuccess(result -> log.info("getRolWithPermissions - successfully fetched role with {} method groups", 
                 result.getPermissions() != null ? result.getPermissions().size() : 0))
@@ -92,7 +92,7 @@ public class RolService {
      * Crear un nuevo rol
      */
     public Mono<Rol> createRol(Rol rol) {
-        log.info("createRol - creating new role with nombre={}", rol.getNombre());
+        log.info("createRol - creating new role with name={}", rol.getName());
         return rolRepository.save(rol)
             .doOnSuccess(saved -> log.info("createRol - role created with id={}", saved.getId()))
             .doOnError(error -> log.error("createRol - error creating role: {}", error.getMessage()));
@@ -102,7 +102,7 @@ public class RolService {
      * Crear un permission para un rol
      */
     public Mono<Permission> createPermission(Permission permission) {
-        log.info("createPermission - creating permission={} for rolId={}", permission.getPermissions(), permission.getRol_id());
+        log.info("createPermission - creating permission={} for rolId={}", permission.getRol_id());
         return permissionRepository.save(permission)
             .doOnSuccess(saved -> log.info("createPermission - permission created with id={}", saved.getId()))
             .doOnError(error -> log.error("createPermission - error creating permission: {}", error.getMessage()));
@@ -115,7 +115,7 @@ public class RolService {
         log.info("updateRol - updating role id={}", rolId);
         return rolRepository.findById(rolId)
             .flatMap(existing -> {
-                existing.setNombre(rol.getNombre());
+                existing.setName(rol.getName());
                 return rolRepository.save(existing);
             })
             .doOnSuccess(updated -> log.info("updateRol - role updated"))

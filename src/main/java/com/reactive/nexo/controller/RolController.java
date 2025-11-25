@@ -54,7 +54,7 @@ public class RolController {
      */
     @PostMapping
     public Mono<ResponseEntity<Rol>> createRol(@RequestBody Rol rol) {
-        log.info("POST /api/v1/rols - creating new rol with nombre={}", rol.getNombre());
+        log.info("POST /api/v1/rols - creating new rol with name={}", rol.getName());
         return rolService.createRol(rol)
             .map(created -> ResponseEntity.status(HttpStatus.CREATED).body(created))
             .onErrorResume(error -> {
@@ -92,7 +92,7 @@ public class RolController {
     }
 
     /**
-     * POST /api/v1/rols/{rolId}/permisos — crea un permiso para un rol
+     * POST /api/v1/rols/{rolId}/permission — crea un permission para un rol
      */
     @PostMapping("/{rolId}/permission")
     public Mono<ResponseEntity<Permission>> createPermission(@PathVariable Integer rolId, @RequestBody Permission permission) {

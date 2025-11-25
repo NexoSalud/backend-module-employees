@@ -14,6 +14,12 @@ import reactor.core.publisher.Flux;
 import java.util.Arrays;
 import java.util.List;
 
+import com.reactive.nexo.model.Permission;
+import com.reactive.nexo.model.Rol;
+import com.reactive.nexo.repository.PermissionRepository;
+import com.reactive.nexo.repository.RolRepository;
+
+
 @Component
 @Profile("!test")
 @Slf4j
@@ -32,7 +38,8 @@ public class EmployeeInitializer implements CommandLineRunner {
     
     @Override
     public void run(String... args) {
-            initialDataSetup();
+        
+        initialDataSetup();
     }
 
     private List<Employee> getData(){
@@ -109,5 +116,6 @@ public class EmployeeInitializer implements CommandLineRunner {
                     log.info("Employee Inserted from CommandLineRunner " + employee);
                 });
     }
+
 
 }

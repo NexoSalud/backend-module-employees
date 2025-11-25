@@ -37,28 +37,40 @@ private EmployeeService employeeService;
     @GetMapping("/{employeeId}")
     public Mono<ResponseEntity<EmployeeWithAttributesDTO>> getEmployeeById(@PathVariable Integer employeeId){
         Mono<EmployeeWithAttributesDTO> employee = employeeService.getEmployeeWithAttributes(employeeId);
-        return employee.map( u -> {u.setPassword(null); return ResponseEntity.ok(u);})
+        return employee.map( u -> {
+                     u.setPassword("***");
+                     u.setSecret("***");
+                     return ResponseEntity.ok(u);})
                 .defaultIfEmpty(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/by-identification/{identificationType}/{identificationNumber}")
     public Mono<ResponseEntity<EmployeeWithAttributesDTO>> getEmployeeByIdentificationNumber(@PathVariable String identificationType, @PathVariable String identificationNumber){
         Mono<EmployeeWithAttributesDTO> employee = employeeService.getEmployeeWithAttributesByIdentification(identificationType.toUpperCase(), identificationNumber);
-        return employee.map( u -> {u.setPassword(null); return ResponseEntity.ok(u);})
+        return employee.map( u -> {
+                  u.setPassword("***");
+                  u.setSecret("***");
+                  return ResponseEntity.ok(u);})
                 .defaultIfEmpty(ResponseEntity.notFound().build());
     }
 
     @PutMapping("/{employeeId}")
     public Mono<ResponseEntity<Employee>> updateEmployeeById(@PathVariable Integer employeeId, @RequestBody com.reactive.nexo.dto.CreateEmployeeRequest request){
         return employeeService.updateEmployeeWithAttributes(employeeId, request)
-                .map(updatedEmployee -> { updatedEmployee.setPassword(null); return ResponseEntity.ok(updatedEmployee);})
+                .map(updatedEmployee -> { 
+                    updatedEmployee.setPassword("***");;
+                    updatedEmployee.setSecret("***");
+                    return ResponseEntity.ok(updatedEmployee);})
                 .defaultIfEmpty(ResponseEntity.badRequest().build());
     }
 
     @PatchMapping("/{employeeId}")
     public Mono<ResponseEntity<Employee>> patchEmployeeById(@PathVariable Integer employeeId, @RequestBody com.reactive.nexo.dto.CreateEmployeeRequest request){
         return employeeService.partialUpdateEmployee(employeeId, request)
-                .map(updatedEmployee ->{ updatedEmployee.setPassword(null); return ResponseEntity.ok(updatedEmployee);})
+                .map(updatedEmployee ->{ 
+                    updatedEmployee.setPassword("***");
+                    updatedEmployee.setSecret("***");
+                    return ResponseEntity.ok(updatedEmployee);})
                 .onErrorResume(err -> Mono.just(ResponseEntity.status(HttpStatus.CONFLICT).build()))
                 .defaultIfEmpty(ResponseEntity.notFound().build());
     }
