@@ -10,6 +10,7 @@ import com.reactive.nexo.dto.AttributeWithValuesDTO;
 import com.reactive.nexo.dto.EmployeeWithAttributesDTO;
 import com.reactive.nexo.dto.AuthRequest;
 import com.reactive.nexo.dto.AuthResponse;
+import com.reactive.nexo.util.JwtUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -47,6 +48,12 @@ public class EmployeeService {
 
     @Autowired
     private com.reactive.nexo.service.ValueAttributeService valueAttributeService;
+
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    @Autowired
+    private EmailService emailService;
 
     @Autowired
     private RolService rolService;
@@ -371,5 +378,41 @@ public class EmployeeService {
                                     rolWithPermissions.getPermissions()
                             ));
                 });
+    }
+
+    /**
+     * Reset password - sends email with JWT token
+     */
+    public Mono<Boolean> resetPassword(Integer employeeId) {
+        return employeeRepository.findById(employeeId)
+                .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Employee not found")))
+                .flatMap(employee -> {
+                    // Get employee email from attributes
+                    return getEmployeeEmail(employeeId)
+                            .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Employee email not found")))
+                            .flatMap(email -> {
+                                // Generate reset token
+                                String resetToken = jwtUtil.generatePasswordResetToken(employeeId);
+                                log.info("Generated password reset token for employee {}: {}", employeeId, 
+                                        resetToken.substring(0, Math.min(resetToken.length(), 20)) + "...");
+                                
+                                // Send email
+                                return emailService.sendPasswordResetEmail(email, resetToken);
+                            });
+                });
+    }
+
+    /**
+     * Get employee email from attributes
+     */
+    private Mono<String> getEmployeeEmail(Integer employeeId) {
+        return attributeEmployeeRepository.findByEmployeeId(employeeId)
+                .filter(attr -> "email".equals(attr.getName_attribute()))
+                .next() // Take the first email attribute
+                .flatMap(emailAttribute -> 
+                    valueAttributeEmployeeRepository.findByAttributeId(emailAttribute.getId())
+                            .map(ValueAttributeEmployee::getValueAttribute)
+                            .next() // Take the first value
+                );
     }
 }

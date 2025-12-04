@@ -98,5 +98,32 @@ private EmployeeService employeeService;
                     return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
                 });
     }
+
+    /**
+     * POST /api/v1/employees/{employee_id}/reset-password - Reset password
+     * Generates JWT token and sends email with reset link
+     */
+    @PostMapping("/{employee_id}/reset-password")
+    public Mono<ResponseEntity<String>> resetPassword(@PathVariable("employee_id") Integer employeeId) {
+        return employeeService.resetPassword(employeeId)
+                .map(success -> {
+                    if (success) {
+                        return ResponseEntity.ok("Password reset email sent successfully");
+                    } else {
+                        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                .body("Failed to send password reset email");
+                    }
+                })
+                .onErrorResume(err -> {
+                    if (err instanceof org.springframework.web.server.ResponseStatusException) {
+                        org.springframework.web.server.ResponseStatusException rsException = 
+                                (org.springframework.web.server.ResponseStatusException) err;
+                        return Mono.just(ResponseEntity.status(rsException.getStatusCode())
+                                .body(rsException.getReason()));
+                    }
+                    return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                            .body("Error processing password reset request"));
+                });
+    }
 }
 
