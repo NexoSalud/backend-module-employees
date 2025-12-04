@@ -7,6 +7,8 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 @Slf4j
@@ -64,7 +66,10 @@ public class EmailService {
         body.append("Si no solicitó este cambio, ignore este mensaje.\n\n");
         body.append("Atentamente,\n");
         body.append("Equipo Nexo Salud");
+        logger.info("Built password reset email body: {}", body.toString());
         
         return body.toString();
     }
+
+    private static final Logger logger = LoggerFactory.getLogger(EmailService.class);
 }
