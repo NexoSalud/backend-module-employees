@@ -1,8 +1,14 @@
 spring:
   r2dbc:
-    url: r2dbc:h2:mem:///devdb?options=DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-    username: sa
-    password:
+    url: r2dbc:postgresql://localhost:5432/nexosalud
+    username: postgres
+    password: postgres
+  application:
+    name: employees-service
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
 logging:
   level:
     org.springframework.data.r2dbc: Debug
@@ -12,9 +18,9 @@ spring:
     activate:
       on-profile: test
   r2dbc:
-    url: r2dbc:h2:mem:///test?options=DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-    name: sa
-    password:
+    url: r2dbc:postgresql://localhost:5432/nexosalud
+    username: postgres
+    password: postgres
 ---
 spring:
   config:
@@ -24,6 +30,12 @@ spring:
     url: r2dbc:postgresql://localhost:5432/nexosalud
     username: postgres
     password: postgres
+  application:
+    name: employees-service
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
   logging:
     level:
       org.springframework.data.r2dbc: Debug
