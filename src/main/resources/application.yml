@@ -1,6 +1,6 @@
 spring:
   r2dbc:
-    url: r2dbc:postgresql://localhost:5432/employeesdb
+    url: r2dbc:postgresql://localhost:5432/nexosalud
     username: postgres
     password: postgres
   application:
@@ -70,7 +70,7 @@ spring:
     activate:
       on-profile: prod
   r2dbc:
-    url: r2dbc:postgresql://localhost:5432/employeesdb
+    url: r2dbc:postgresql://localhost:5432/nexosalud
     username: postgres
     password: postgres
   application:
@@ -82,8 +82,8 @@ spring:
   mail:
     host: ${EMAIL_HOST:smtp.gmail.com}
     port: ${EMAIL_PORT:587}
-    username: ${EMAIL_USERNAME}
-    password: ${EMAIL_PASSWORD}
+    username: ${EMAIL_USERNAME:}
+    password: ${EMAIL_PASSWORD:}
     properties:
       mail:
         smtp:
@@ -92,17 +92,17 @@ spring:
             enable: true
 
 jwt:
-  secret: ${JWT_SECRET}
+  secret: ${JWT_SECRET:mySecretKeyForJWTTokenGenerationAndValidation1234567890}
   reset-password-expiration: ${JWT_RESET_PASSWORD_EXPIRATION:3600000}
 
 email:
-  from: ${EMAIL_FROM}
+  from: ${EMAIL_FROM:no-reply@nexosalud.com}
   reset-password:
-    subject: ${EMAIL_RESET_PASSWORD_SUBJECT}
-    text: ${EMAIL_RESET_PASSWORD_TEXT}
-    website: ${EMAIL_RESET_PASSWORD_WEBSITE}
+    subject: ${EMAIL_RESET_PASSWORD_SUBJECT:Recuperación de Contraseña - Nexo Salud}
+    text: ${EMAIL_RESET_PASSWORD_TEXT:Estimado usuario, para recuperar su contraseña haga clic en el siguiente enlace:}
+    website: ${EMAIL_RESET_PASSWORD_WEBSITE:https://nexosalud.com/reset-password}
 
-  logging:
-    level:
-      org.springframework.data.r2dbc: Debug
+logging:
+  level:
+    org.springframework.data.r2dbc: Debug
 
