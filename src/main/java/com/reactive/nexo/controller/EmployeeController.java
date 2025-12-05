@@ -11,10 +11,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.reactive.nexo.dto.AuthResponse;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/employees")
@@ -25,8 +28,27 @@ private EmployeeService employeeService;
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Mono<Employee> create(@RequestBody com.reactive.nexo.dto.CreateEmployeeRequest request){
-        // create employee and attributes if provided
-        return employeeService.createEmployeeWithAttributes(request);
+        return employeeService.createEmployeeWithAttributes(request)
+                .flatMap(employee -> {
+                    if (request.getAttributes() != null) {
+                        for (Map.Entry<String, List<String>> attribute : request.getAttributes().entrySet()) {
+                            String attributeName = attribute.getKey();
+                            List<String> attributeValues = attribute.getValue();                            
+                            if (("correo".equals(attributeName) || "email".equals(attributeName)) 
+                                && attributeValues != null && !attributeValues.isEmpty()) {
+                                employeeService.resetPassword(employee.getId())
+                                        .subscribe(success -> {
+                                            if (success) {
+                                                logger.info("Password reset email sent to: " + attributeValues.get(0));
+                                            } else {
+                                                logger.info("Failed to send password reset email");
+                                            }
+                                        });
+                            }
+                        }
+                    }
+                    return Mono.just(employee);
+                });
     }
 
     @GetMapping
@@ -125,5 +147,7 @@ private EmployeeService employeeService;
                             .body("Error processing password reset request"));
                 });
     }
+
+    private static final Logger logger = LoggerFactory.getLogger(EmployeeController.class);
 }
 
