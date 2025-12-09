@@ -11,4 +11,8 @@ public interface EmployeeRepository extends ReactiveCrudRepository<Employee,Inte
     Flux<Employee> findByIdentificationNumber(String identificationNumber);
     @Query("select id,identification_number,identification_type,names,lastnames,password,rol_id,secret from employees where identification_type = $1 and identification_number = $2 limit 1")
     Mono<Employee> findByIdentificationTypeAndNumber(String identificationType, String identificationNumber);
+    @Query("select id,identification_number,identification_type,names,lastnames,password,rol_id,secret from employees order by id asc limit $1 offset $2")
+    Flux<Employee> findAllWithPagination(int limit, int offset);
+    @Query("select count(*) from employees")
+    Mono<Long> countAll();
 }

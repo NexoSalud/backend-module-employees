@@ -8,6 +8,7 @@ import com.reactive.nexo.repository.EmployeeRepository;
 import com.reactive.nexo.repository.ValueAttributeEmployeeRepository;
 import com.reactive.nexo.dto.AttributeWithValuesDTO;
 import com.reactive.nexo.dto.EmployeeWithAttributesDTO;
+import com.reactive.nexo.dto.PagedResponse;
 import com.reactive.nexo.dto.AuthRequest;
 import com.reactive.nexo.dto.AuthResponse;
 import com.reactive.nexo.util.JwtUtil;
@@ -22,6 +23,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.Map;
 import java.util.Collections;
@@ -73,6 +75,62 @@ public class EmployeeService {
 
     public Flux<Employee> getAllEmployees(){
         return employeeRepository.findAll();
+    }
+
+    public Mono<PagedResponse<EmployeeWithAttributesDTO>> getAllEmployeesWithPagination(int page, int size, Set<String> attributes){
+        int finalPage = page < 0 ? 0 : page;
+        int finalSize = size <= 0 ? 10 : size;
+        final int offset = finalPage * finalSize;
+        final Set<String> finalAttributes = attributes;
+        
+        return employeeRepository.countAll()
+                .flatMap(totalElements -> 
+                    employeeRepository.findAllWithPagination(finalSize, offset)
+                        .flatMap(employee -> 
+                            finalAttributes == null || finalAttributes.isEmpty() 
+                                ? Mono.just(new EmployeeWithAttributesDTO(employee.getId(), employee.getNames(), employee.getLastnames(), employee.getIdentification_type(), employee.getIdentification_number(), "***", employee.getRol_id(), "***", Collections.emptyList()))
+                                : getEmployeeWithFilteredAttributes(employee.getId(), finalAttributes)
+                        )
+                        .collectList()
+                        .map(content -> {
+                            long totalPages = (totalElements + finalSize - 1) / finalSize;
+                            boolean isLast = finalPage >= totalPages - 1;
+                            return new PagedResponse<EmployeeWithAttributesDTO>(content, finalPage, finalSize, totalElements, totalPages, isLast);
+                        })
+                );
+    }
+
+    private Mono<EmployeeWithAttributesDTO> getEmployeeWithFilteredAttributes(Integer employeeId, Set<String> attributeNames){
+        return employeeRepository.findById(employeeId)
+            .flatMap(employee ->
+                attributeEmployeeRepository.findByEmployeeId(employeeId)
+                    .filter(attr -> attributeNames.contains(attr.getName_attribute()))
+                    .flatMap(attr -> 
+                        valueAttributeEmployeeRepository.findByAttributeId(attr.getId())
+                            .collectList()
+                            .map(values -> {
+                                List<String> valuesList = values.stream()
+                                    .map(ValueAttributeEmployee::getValueAttribute)
+                                    .collect(Collectors.toList());
+                                return new AttributeWithValuesDTO(
+                                    attr.getName_attribute(),
+                                    valuesList
+                                );
+                            })
+                    )
+                    .collectList()
+                    .map(attributes -> new EmployeeWithAttributesDTO(
+                        employee.getId(),
+                        employee.getNames(),
+                        employee.getLastnames(),
+                        employee.getIdentification_type(),
+                        employee.getIdentification_number(),
+                        "***",
+                        employee.getRol_id(),
+                        "***",
+                        attributes
+                    ))
+            );
     }
 
     public Mono<Employee> findById(Integer employeeId){

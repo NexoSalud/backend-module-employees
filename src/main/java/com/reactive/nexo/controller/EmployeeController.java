@@ -3,6 +3,7 @@ package com.reactive.nexo.controller;
 import com.reactive.nexo.model.Employee;
 import com.reactive.nexo.service.EmployeeService;
 import com.reactive.nexo.dto.EmployeeWithAttributesDTO;
+import com.reactive.nexo.dto.PagedResponse;
 import com.reactive.nexo.dto.AuthRequest;
 import com.reactive.nexo.dto.AuthResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +19,9 @@ import com.reactive.nexo.dto.AuthResponse;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.Arrays;
 
 @RestController
 @RequestMapping("/api/v1/employees")
@@ -52,8 +56,17 @@ private EmployeeService employeeService;
     }
 
     @GetMapping
-    public Flux<Employee> getAllEmployees(){
-        return employeeService.getAllEmployees();
+    public Mono<PagedResponse<EmployeeWithAttributesDTO>> getAllEmployees(
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size,
+            @RequestParam(value = "attributes", required = false) String attributes) {
+        
+        Set<String> attributeSet = null;
+        if (attributes != null && !attributes.trim().isEmpty()) {
+            attributeSet = new HashSet<>(Arrays.asList(attributes.split(",")));
+        }
+        
+        return employeeService.getAllEmployeesWithPagination(page, size, attributeSet);
     }
 
     @GetMapping("/{employeeId}")
