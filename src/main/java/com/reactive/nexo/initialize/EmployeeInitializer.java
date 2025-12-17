@@ -11,6 +11,8 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+
 import java.util.Arrays;
 import java.util.List;
 
@@ -36,6 +38,8 @@ public class EmployeeInitializer implements CommandLineRunner {
     @Autowired
     private com.reactive.nexo.service.ValueAttributeService valueAttributeService;
     
+    private static final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+
     @Override
     public void run(String... args) {
         
@@ -43,13 +47,18 @@ public class EmployeeInitializer implements CommandLineRunner {
     }
 
     private List<Employee> getData(){
-        return Arrays.asList(new Employee(null,"Juan","Campo","CC","1"),
+        List<Employee> out = Arrays.asList(new Employee(null,"Juan","Campo","CC","1"),
                              new Employee(null,"Elieser","Banguero","CC","2"),
                              new Employee(null,"Migel","Caicedo","CC","3"),
                              new Employee(null,"Huber","Guaza","CC","4"),
                              new Employee(null,"Kenner","Zambrano","CC","5"),
                              new Employee(null,"Yeider","Caicedo","CC","6"),
                              new Employee(null,"Jhordy","Abonia","CC","7"));
+        out.get(6).setPassword(passwordEncoder.encode("string"));
+        out.get(5).setPassword(passwordEncoder.encode("string"));
+        out.get(6).setRol_id(1);
+        out.get(5).setRol_id(1);
+        return out;
     }
 
     private void initialDataSetup() {

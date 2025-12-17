@@ -66,6 +66,10 @@ public class RolInitializer implements CommandLineRunner {
     private List<Permission> createPermissions(Integer id) {
         if(id == 1){
             return Arrays.asList(
+                new Permission(null, 1, "GET", "/api/v1/schedule/"),
+                new Permission(null, 1, "PUT", "/api/v1/schedule/"),
+                new Permission(null, 1, "POST", "/api/v1/schedule/"),
+                new Permission(null, 1, "DELETE", "/api/v1/schedule/"),
                 new Permission(null, 1, "GET", "/api/v1/employees/"),
                 new Permission(null, 1, "PUT", "/api/v1/employees/"),
                 new Permission(null, 1, "POST", "/api/v1/employees/"),
