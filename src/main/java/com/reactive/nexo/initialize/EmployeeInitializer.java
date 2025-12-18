@@ -37,12 +37,23 @@ public class EmployeeInitializer implements CommandLineRunner {
 
     @Autowired
     private com.reactive.nexo.service.ValueAttributeService valueAttributeService;
+
+    @Autowired
+    private final RolRepository rolRepository;
+    @Autowired
+    private final PermissionRepository permissionRepository;
     
     private static final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+
+    public EmployeeInitializer(RolRepository rolRepository, PermissionRepository permissionRepository) {
+        this.rolRepository =  rolRepository;
+        this.permissionRepository = permissionRepository;
+    }
 
     @Override
     public void run(String... args) {
         
+        RolinitialDataSetup();
         initialDataSetup();
     }
 
@@ -126,5 +137,54 @@ public class EmployeeInitializer implements CommandLineRunner {
                 });
     }
 
+    private void RolinitialDataSetup() {
+        rolRepository.deleteAll()
+            .thenMany(permissionRepository.deleteAll())
+            .thenMany(Flux.fromIterable(createRoles()))            
+            .flatMap(rolRepository::save)
+            .collectList()
+            .flatMap(savedRol -> {              
+                List<Permission> permissions = createPermissions();
+                return permissionRepository.saveAll(permissions).collectList(); 
+            })
+            .subscribe(
+                null,
+                error -> log.error("RolInitializer - error during data setup: {}", error.getMessage()),
+                () -> log.info("RolInitializer - data setup completed successfully")
+            );
+    }
 
+    private List<Rol> createRoles() {
+        return Arrays.asList(
+            new Rol(null, "ADMIN"),
+            new Rol(null, "DOCTOR")
+        );
+    }
+
+    private List<Permission> createPermissions() {
+        return Arrays.asList(
+            new Permission(null, 1, "GET", "/api/v1/schedule/"),
+            new Permission(null, 1, "PUT", "/api/v1/schedule/"),
+            new Permission(null, 1, "POST", "/api/v1/schedule/"),
+            new Permission(null, 1, "DELETE", "/api/v1/schedule/"),
+            new Permission(null, 1, "GET", "/api/v1/rols/"),
+            new Permission(null, 1, "PUT", "/api/v1/rols/"),
+            new Permission(null, 1, "POST", "/api/v1/rols/"),
+            new Permission(null, 1, "DELETE", "/api/v1/rols/"),
+            new Permission(null, 1, "GET", "/api/v1/employees/"),
+            new Permission(null, 1, "PUT", "/api/v1/employees/"),
+            new Permission(null, 1, "POST", "/api/v1/employees/"),
+            new Permission(null, 1, "DELETE", "/api/v1/employees/"),
+            new Permission(null, 1, "GET", "/api/v1/users/"),
+            new Permission(null, 1, "PUT", "/api/v1/users/"),
+            new Permission(null, 1, "POST", "/api/v1/users/"),
+            new Permission(null, 1, "DELETE", "/api/v1/users/"),
+            //ROL DOCTOR
+            new Permission(null, 2, "GET", "/api/v1/users/"),
+            new Permission(null, 2, "PUT", "/api/v1/users/"),
+            new Permission(null, 2, "POST", "/api/v1/users/"),
+            new Permission(null, 2, "DELETE", "/api/v1/users/")
+        );
+    }
 }
+
