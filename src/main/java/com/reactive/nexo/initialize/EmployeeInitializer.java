@@ -163,27 +163,28 @@ public class EmployeeInitializer implements CommandLineRunner {
 
     private List<Permission> createPermissions() {
         return Arrays.asList(
-            new Permission(null, 1, "GET", "/api/v1/schedule/"),
-            new Permission(null, 1, "PUT", "/api/v1/schedule/"),
-            new Permission(null, 1, "POST", "/api/v1/schedule/"),
-            new Permission(null, 1, "DELETE", "/api/v1/schedule/"),
-            new Permission(null, 1, "GET", "/api/v1/rols/"),
-            new Permission(null, 1, "PUT", "/api/v1/rols/"),
-            new Permission(null, 1, "POST", "/api/v1/rols/"),
-            new Permission(null, 1, "DELETE", "/api/v1/rols/"),
-            new Permission(null, 1, "GET", "/api/v1/employees/"),
-            new Permission(null, 1, "PUT", "/api/v1/employees/"),
-            new Permission(null, 1, "POST", "/api/v1/employees/"),
-            new Permission(null, 1, "DELETE", "/api/v1/employees/"),
-            new Permission(null, 1, "GET", "/api/v1/users/"),
-            new Permission(null, 1, "PUT", "/api/v1/users/"),
-            new Permission(null, 1, "POST", "/api/v1/users/"),
-            new Permission(null, 1, "DELETE", "/api/v1/users/"),
+            new Permission(null, 1, "GET","api/v1/tracking"),
+            new Permission(null, 1, "GET", "/api/v1/schedule"),
+            new Permission(null, 1, "PUT", "/api/v1/schedule"),
+            new Permission(null, 1, "POST", "/api/v1/schedule"),
+            new Permission(null, 1, "DELETE", "/api/v1/schedule"),
+            new Permission(null, 1, "GET", "/api/v1/rols"),
+            new Permission(null, 1, "PUT", "/api/v1/rols"),
+            new Permission(null, 1, "POST", "/api/v1/rols"),
+            new Permission(null, 1, "DELETE", "/api/v1/rols"),
+            new Permission(null, 1, "GET", "/api/v1/employees"),
+            new Permission(null, 1, "PUT", "/api/v1/employees"),
+            new Permission(null, 1, "POST", "/api/v1/employees"),
+            new Permission(null, 1, "DELETE", "/api/v1/employees"),
+            new Permission(null, 1, "GET", "/api/v1/users"),
+            new Permission(null, 1, "PUT", "/api/v1/users"),
+            new Permission(null, 1, "POST", "/api/v1/users"),
+            new Permission(null, 1, "DELETE", "/api/v1/users"),
             //ROL DOCTOR
-            new Permission(null, 2, "GET", "/api/v1/users/"),
-            new Permission(null, 2, "PUT", "/api/v1/users/"),
-            new Permission(null, 2, "POST", "/api/v1/users/"),
-            new Permission(null, 2, "DELETE", "/api/v1/users/")
+            new Permission(null, 2, "GET", "/api/v1/users"),
+            new Permission(null, 2, "PUT", "/api/v1/users"),
+            new Permission(null, 2, "POST", "/api/v1/users"),
+            new Permission(null, 2, "DELETE", "/api/v1/users")
         );
     }
 }
