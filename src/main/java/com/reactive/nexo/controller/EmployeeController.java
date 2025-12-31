@@ -135,12 +135,13 @@ private EmployeeService employeeService;
     }
 
     /**
-     * POST /api/v1/employees/{employee_id}/reset-password - Reset password
+     * GET /api/v1/employees/reset-password/{identificationType}/{identificationNumber} - Reset password
      * Generates JWT token and sends email with reset link
      */
-    @PostMapping("/{employee_id}/reset-password")
-    public Mono<ResponseEntity<String>> resetPassword(@PathVariable("employee_id") Integer employeeId) {
-        return employeeService.resetPassword(employeeId)
+    @GetMapping("/reset-password/{identificationType}/{identificationNumber}")
+    public Mono<ResponseEntity<String>> resetPassword(@PathVariable("identificationType") String identificationType,
+                                                      @PathVariable("identificationNumber") String identificationNumber) {
+        return employeeService.resetPassword(identificationType, identificationNumber)
                 .map(success -> {
                     if (success) {
                         return ResponseEntity.ok("Password reset email sent successfully");

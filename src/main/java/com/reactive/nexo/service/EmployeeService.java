@@ -450,14 +450,25 @@ public class EmployeeService {
                             .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Employee email not found")))
                             .flatMap(email -> {
                                 // Generate reset token
-                                String resetToken = jwtUtil.generatePasswordResetToken(employeeId);
-                                log.info("Generated password reset token for employee {}: {}", employeeId, 
+                                String resetToken = jwtUtil.generatePasswordResetToken(email,employeeId.toString());
+                                log.info("Generated password reset token for employee {}:{} {}", employeeId,email, 
                                         resetToken.substring(0, Math.min(resetToken.length(), 20)) + "...");
                                 
                                 // Send email
                                 return emailService.sendPasswordResetEmail(email, resetToken);
                             });
                 });
+    }
+
+    /**
+     * Reset password by identification type and number - sends email with JWT token
+     */
+    public Mono<Boolean> resetPassword(String identificationType, String identificationNumber) {
+        return employeeRepository.findByIdentificationTypeAndNumber(
+                        identificationType != null ? identificationType.toUpperCase() : null,
+                        identificationNumber)
+                .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Employee not found")))
+                .flatMap(employee -> {  return this.resetPassword(employee.getId());    });
     }
 
     /**

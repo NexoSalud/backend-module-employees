@@ -30,9 +30,10 @@ public class JwtUtil {
     /**
      * Generate a JWT token for password reset with employee_id claim and 1 hour expiration
      */
-    public String generatePasswordResetToken(Integer employeeId) {
+    public String generatePasswordResetToken(String employeeEmail,String employeeId) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("employee_id", employeeId.toString());
+        claims.put("employee_email", employeeEmail);
+        claims.put("employee_id", employeeId);
         claims.put("purpose", "password_reset");
 
         return Jwts.builder()

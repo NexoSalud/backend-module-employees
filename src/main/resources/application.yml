@@ -32,7 +32,7 @@ email:
   from: ${EMAIL_FROM:no-reply@nexosalud.com}
   reset-password:
     subject: ${EMAIL_RESET_PASSWORD_SUBJECT:Recuperación de Contraseña - Nexo Salud}
-    text: ${EMAIL_RESET_PASSWORD_TEXT:Estimado usuario, para recuperar su contraseña haga clic en el siguiente enlace:}
+    text: ${EMAIL_RESET_PASSWORD_TEXT:Estimado usuario, para recuperar su contraseña haga clic en el siguiente enlace \n\n Ignore este correo si no ha solicitado el cambio.}
     website: ${EMAIL_RESET_PASSWORD_WEBSITE:https://nexosalud.com/reset-password}
 
 logging:
