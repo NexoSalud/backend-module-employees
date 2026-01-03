@@ -13,7 +13,7 @@ import java.util.List;
 public class RolWithPermissionDTO {
 
     private Integer id;
-    private String nombre;
+    private String name;
     
     @JsonProperty("permission")
     private List<Map<String, List<String>>> permissions;

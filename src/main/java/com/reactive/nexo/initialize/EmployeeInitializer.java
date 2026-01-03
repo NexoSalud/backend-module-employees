@@ -11,8 +11,16 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+
 import java.util.Arrays;
 import java.util.List;
+
+import com.reactive.nexo.model.Permission;
+import com.reactive.nexo.model.Rol;
+import com.reactive.nexo.repository.PermissionRepository;
+import com.reactive.nexo.repository.RolRepository;
+
 
 @Component
 @Profile("!test")
@@ -29,20 +37,39 @@ public class EmployeeInitializer implements CommandLineRunner {
 
     @Autowired
     private com.reactive.nexo.service.ValueAttributeService valueAttributeService;
+
+    @Autowired
+    private final RolRepository rolRepository;
+    @Autowired
+    private final PermissionRepository permissionRepository;
     
+    private static final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+
+    public EmployeeInitializer(RolRepository rolRepository, PermissionRepository permissionRepository) {
+        this.rolRepository =  rolRepository;
+        this.permissionRepository = permissionRepository;
+    }
+
     @Override
     public void run(String... args) {
-            initialDataSetup();
+        
+        RolinitialDataSetup();
+        initialDataSetup();
     }
 
     private List<Employee> getData(){
-        return Arrays.asList(new Employee(null,"Juan","Campo","CC","1"),
+        List<Employee> out = Arrays.asList(new Employee(null,"Juan","Campo","CC","1"),
                              new Employee(null,"Elieser","Banguero","CC","2"),
                              new Employee(null,"Migel","Caicedo","CC","3"),
                              new Employee(null,"Huber","Guaza","CC","4"),
                              new Employee(null,"Kenner","Zambrano","CC","5"),
                              new Employee(null,"Yeider","Caicedo","CC","6"),
                              new Employee(null,"Jhordy","Abonia","CC","7"));
+        out.get(6).setPassword(passwordEncoder.encode("string"));
+        out.get(5).setPassword(passwordEncoder.encode("string"));
+        out.get(6).setRol_id(1);
+        out.get(5).setRol_id(1);
+        return out;
     }
 
     private void initialDataSetup() {
@@ -110,4 +137,62 @@ public class EmployeeInitializer implements CommandLineRunner {
                 });
     }
 
+    private void RolinitialDataSetup() {
+        rolRepository.deleteAll()
+            .thenMany(permissionRepository.deleteAll())
+            .thenMany(Flux.fromIterable(createRoles()))            
+            .flatMap(rolRepository::save)
+            .collectList()
+            .flatMap(savedRol -> {              
+                List<Permission> permissions = createPermissions();
+                return permissionRepository.saveAll(permissions).collectList(); 
+            })
+            .subscribe(
+                null,
+                error -> log.error("RolInitializer - error during data setup: {}", error.getMessage()),
+                () -> log.info("RolInitializer - data setup completed successfully")
+            );
+    }
+
+    private List<Rol> createRoles() {
+        return Arrays.asList(
+            new Rol(null, "ADMIN"),
+            new Rol(null, "DOCTOR")
+        );
+    }
+
+    private List<Permission> createPermissions() {
+        return Arrays.asList(
+            new Permission(null, 1, "GET","api/v1/tracking"),
+
+            new Permission(null, 1, "GET", "/api/v1/schedule"),
+            new Permission(null, 1, "PUT", "/api/v1/schedule"),
+            new Permission(null, 1, "POST", "/api/v1/schedule"),
+            new Permission(null, 1, "DELETE", "/api/v1/schedule"),
+
+            new Permission(null, 1, "GET", "/api/v1/rols"),
+            new Permission(null, 1, "PUT", "/api/v1/rols"),
+            new Permission(null, 1, "POST", "/api/v1/rols"),
+            new Permission(null, 1, "DELETE", "/api/v1/rols"),
+
+            new Permission(null, 1, "GET", "/api/v1/employees"),
+            new Permission(null, 1, "PUT", "/api/v1/employees"),
+            new Permission(null, 1, "PATCH", "/api/v1/employees"),
+            new Permission(null, 1, "POST", "/api/v1/employees"),
+            new Permission(null, 1, "DELETE", "/api/v1/employees"),
+            
+            new Permission(null, 1, "GET", "/api/v1/users"),
+            new Permission(null, 1, "PUT", "/api/v1/users"),
+            new Permission(null, 1, "PATCH", "/api/v1/users"),
+            new Permission(null, 1, "POST", "/api/v1/users"),
+            new Permission(null, 1, "DELETE", "/api/v1/users"),
+            //ROL DOCTOR
+            new Permission(null, 2, "GET", "/api/v1/users"),
+            new Permission(null, 2, "PUT", "/api/v1/users"),
+            new Permission(null, 2, "PATCH", "/api/v1/users"),
+            new Permission(null, 2, "POST", "/api/v1/users"),
+            new Permission(null, 2, "DELETE", "/api/v1/users")
+        );
+    }
 }
+

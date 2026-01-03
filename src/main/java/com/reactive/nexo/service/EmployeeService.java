@@ -8,8 +8,10 @@ import com.reactive.nexo.repository.EmployeeRepository;
 import com.reactive.nexo.repository.ValueAttributeEmployeeRepository;
 import com.reactive.nexo.dto.AttributeWithValuesDTO;
 import com.reactive.nexo.dto.EmployeeWithAttributesDTO;
+import com.reactive.nexo.dto.PagedResponse;
 import com.reactive.nexo.dto.AuthRequest;
 import com.reactive.nexo.dto.AuthResponse;
+import com.reactive.nexo.util.JwtUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -21,6 +23,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.Map;
 import java.util.Collections;
@@ -49,6 +52,12 @@ public class EmployeeService {
     private com.reactive.nexo.service.ValueAttributeService valueAttributeService;
 
     @Autowired
+    private JwtUtil jwtUtil;
+
+    @Autowired
+    private EmailService emailService;
+
+    @Autowired
     private RolService rolService;
 
     private static final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
@@ -68,6 +77,62 @@ public class EmployeeService {
         return employeeRepository.findAll();
     }
 
+    public Mono<PagedResponse<EmployeeWithAttributesDTO>> getAllEmployeesWithPagination(int page, int size, Set<String> attributes){
+        int finalPage = page < 0 ? 0 : page;
+        int finalSize = size <= 0 ? 10 : size;
+        final int offset = finalPage * finalSize;
+        final Set<String> finalAttributes = attributes;
+        
+        return employeeRepository.countAll()
+                .flatMap(totalElements -> 
+                    employeeRepository.findAllWithPagination(finalSize, offset)
+                        .flatMap(employee -> 
+                            finalAttributes == null || finalAttributes.isEmpty() 
+                                ? Mono.just(new EmployeeWithAttributesDTO(employee.getId(), employee.getNames(), employee.getLastnames(), employee.getIdentification_type(), employee.getIdentification_number(), "***", employee.getRol_id(), "***", Collections.emptyList()))
+                                : getEmployeeWithFilteredAttributes(employee.getId(), finalAttributes)
+                        )
+                        .collectList()
+                        .map(content -> {
+                            long totalPages = (totalElements + finalSize - 1) / finalSize;
+                            boolean isLast = finalPage >= totalPages - 1;
+                            return new PagedResponse<EmployeeWithAttributesDTO>(content, finalPage, finalSize, totalElements, totalPages, isLast);
+                        })
+                );
+    }
+
+    private Mono<EmployeeWithAttributesDTO> getEmployeeWithFilteredAttributes(Integer employeeId, Set<String> attributeNames){
+        return employeeRepository.findById(employeeId)
+            .flatMap(employee ->
+                attributeEmployeeRepository.findByEmployeeId(employeeId)
+                    .filter(attr -> attributeNames.contains(attr.getName_attribute()))
+                    .flatMap(attr -> 
+                        valueAttributeEmployeeRepository.findByAttributeId(attr.getId())
+                            .collectList()
+                            .map(values -> {
+                                List<String> valuesList = values.stream()
+                                    .map(ValueAttributeEmployee::getValueAttribute)
+                                    .collect(Collectors.toList());
+                                return new AttributeWithValuesDTO(
+                                    attr.getName_attribute(),
+                                    valuesList
+                                );
+                            })
+                    )
+                    .collectList()
+                    .map(attributes -> new EmployeeWithAttributesDTO(
+                        employee.getId(),
+                        employee.getNames(),
+                        employee.getLastnames(),
+                        employee.getIdentification_type(),
+                        employee.getIdentification_number(),
+                        "***",
+                        employee.getRol_id(),
+                        "***",
+                        attributes
+                    ))
+            );
+    }
+
     public Mono<Employee> findById(Integer employeeId){
         return employeeRepository.findById(employeeId);
     }
@@ -83,7 +148,7 @@ public class EmployeeService {
                         .map(values -> new AttributeWithValuesDTO(attribute.getName_attribute(), values))
                 )
                 .collectList()
-                .map(attrs -> new EmployeeWithAttributesDTO(employee.getId(), employee.getNames(), employee.getLastnames(), employee.getIdentification_type(), employee.getIdentification_number(), employee.getPassword(), employee.getRol_id(), attrs))
+                .map(attrs -> new EmployeeWithAttributesDTO(employee.getId(), employee.getNames(), employee.getLastnames(), employee.getIdentification_type(), employee.getIdentification_number(), employee.getPassword(), employee.getRol_id(), employee.getSecret(), attrs))
         );
     }
 
@@ -149,7 +214,7 @@ public class EmployeeService {
                         .map(values -> new AttributeWithValuesDTO(attribute.getName_attribute(), values))
                 )
                 .collectList()
-                .map(attrs -> new EmployeeWithAttributesDTO(employee.getId(), employee.getNames(), employee.getLastnames(), employee.getIdentification_type(), employee.getIdentification_number(), employee.getPassword(), employee.getRol_id(), attrs))
+                .map(attrs -> new EmployeeWithAttributesDTO(employee.getId(), employee.getNames(), employee.getLastnames(), employee.getIdentification_type(), employee.getIdentification_number(), employee.getPassword(), employee.getRol_id(), employee.getSecret(), attrs))
         );
     }
 
@@ -324,6 +389,9 @@ public class EmployeeService {
         if(request.getRol_id() != null) {
             dbEmployee.setRol_id(request.getRol_id());
         }
+        if(request.getSecret() != null) {
+            dbEmployee.setSecret(request.getSecret());
+        }
         return employeeRepository.save(dbEmployee);
     }
 
@@ -348,9 +416,10 @@ public class EmployeeService {
                     }
                     logger.info("Este es un mensaje de información:"+ employee.getNames());
                     logger.info("Este es un mensaje de información:"+ employee.getRol_id());
+                    logger.info("Este es un mensaje de información:"+ employee.getSecret());
                     // fetch role and permission
                     if (employee.getRol_id() == null) {
-                        AuthResponse r = new AuthResponse(employee.getId(), employee.getNames(), employee.getLastnames(), employee.getIdentification_type(), employee.getIdentification_number(), null, null, Collections.emptyList());
+                        AuthResponse r = new AuthResponse(employee.getId(), employee.getNames(), employee.getLastnames(), employee.getIdentification_type(), employee.getIdentification_number(), null, null, null, Collections.emptyList());
                         return Mono.just(r);
                     }                    
                     logger.info("Este es un mensaje de información:"+ employee.getNames());
@@ -362,9 +431,57 @@ public class EmployeeService {
                                     employee.getIdentification_type(),
                                     employee.getIdentification_number(),
                                     employee.getRol_id(),
-                                    rolWithPermissions.getNombre(),
+                                    rolWithPermissions.getName(),
+                                    employee.getSecret(),
                                     rolWithPermissions.getPermissions()
                             ));
                 });
+    }
+
+    /**
+     * Reset password - sends email with JWT token
+     */
+    public Mono<Boolean> resetPassword(Integer employeeId) {
+        return employeeRepository.findById(employeeId)
+                .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Employee not found")))
+                .flatMap(employee -> {
+                    // Get employee email from attributes
+                    return getEmployeeEmail(employeeId)
+                            .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Employee email not found")))
+                            .flatMap(email -> {
+                                // Generate reset token
+                                String resetToken = jwtUtil.generatePasswordResetToken(email,employeeId.toString());
+                                log.info("Generated password reset token for employee {}:{} {}", employeeId,email, 
+                                        resetToken.substring(0, Math.min(resetToken.length(), 20)) + "...");
+                                
+                                // Send email
+                                return emailService.sendPasswordResetEmail(email, resetToken);
+                            });
+                });
+    }
+
+    /**
+     * Reset password by identification type and number - sends email with JWT token
+     */
+    public Mono<Boolean> resetPassword(String identificationType, String identificationNumber) {
+        return employeeRepository.findByIdentificationTypeAndNumber(
+                        identificationType != null ? identificationType.toUpperCase() : null,
+                        identificationNumber)
+                .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Employee not found")))
+                .flatMap(employee -> {  return this.resetPassword(employee.getId());    });
+    }
+
+    /**
+     * Get employee email from attributes
+     */
+    private Mono<String> getEmployeeEmail(Integer employeeId) {
+        return attributeEmployeeRepository.findByEmployeeId(employeeId)
+                .filter(attr -> "email".equals(attr.getName_attribute()))
+                .next() // Take the first email attribute
+                .flatMap(emailAttribute -> 
+                    valueAttributeEmployeeRepository.findByAttributeId(emailAttribute.getId())
+                            .map(ValueAttributeEmployee::getValueAttribute)
+                            .next() // Take the first value
+                );
     }
 }

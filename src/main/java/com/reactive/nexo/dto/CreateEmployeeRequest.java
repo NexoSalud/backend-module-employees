@@ -17,6 +17,7 @@ public class CreateEmployeeRequest {
     private String identification_number;
     private String password;
     private Integer rol_id;
+    private String secret;
     // attributes: map from attribute name -> list of values
     private Map<String, List<String>> attributes;
 }

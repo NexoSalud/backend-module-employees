@@ -23,6 +23,7 @@ public class Employee {
     //@ToString.Exclude
     private String password;
     private Integer rol_id;
+    private String secret;
 
     // Keep compatibility with existing constructor usages that pass 5 args
     public Employee(Integer id, String names, String lastnames, String identification_type, String identification_number) {
@@ -33,5 +34,6 @@ public class Employee {
         this.identification_number = identification_number;
         this.password = password;
         this.rol_id = rol_id;
+        this.secret = secret;
     }
 }
