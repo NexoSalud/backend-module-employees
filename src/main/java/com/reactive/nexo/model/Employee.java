@@ -34,6 +34,6 @@ public class Employee {
         this.identification_number = identification_number;
         this.password = password;
         this.rol_id = rol_id;
-        this.secret = secret;
+        this.secret = null;
     }
 }
