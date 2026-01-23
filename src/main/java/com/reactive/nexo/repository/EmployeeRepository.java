@@ -15,4 +15,8 @@ public interface EmployeeRepository extends ReactiveCrudRepository<Employee,Inte
     Flux<Employee> findAllWithPagination(int limit, int offset);
     @Query("select count(*) from employees")
     Mono<Long> countAll();
+
+    // Find any employee by attribute name and value (for uniqueness checks)
+    @Query("select e.id, e.identification_number, e.identification_type, e.names, e.lastnames, e.password, e.rol_id, e.secret\n           from employees e\n           join attribute_employee ae on ae.employee_id = e.id\n           join value_attribute_employee vae on vae.attribute_id = ae.id\n           where ae.name_attribute = $1 and vae.value_attribute = $2 limit 1")
+    Mono<Employee> findByAttributeNameAndValue(String nameAttribute, String valueAttribute);
 }

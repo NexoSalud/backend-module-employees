@@ -24,6 +24,7 @@ public class Employee {
     private String password;
     private Integer rol_id;
     private String secret;
+    private Boolean login_enabled;
 
     // Keep compatibility with existing constructor usages that pass 5 args
     public Employee(Integer id, String names, String lastnames, String identification_type, String identification_number) {

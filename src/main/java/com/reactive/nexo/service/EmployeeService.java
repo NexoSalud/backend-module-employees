@@ -237,7 +237,12 @@ public class EmployeeService {
             }
         }
         toSave.setRol_id(request.getRol_id());
-        return createEmployee(toSave).flatMap(savedEmployee -> {
+        // Validate unique attributes (email and averageRegistrationNumber) before saving
+        Map<String, List<String>> incomingAttrs = request.getAttributes();
+        final Map<String, List<String>> attrsToCheck = incomingAttrs == null ? Collections.emptyMap() : incomingAttrs;
+        Mono<Void> uniquenessChecks = validateUniqueAttributes(attrsToCheck, null);
+
+        return uniquenessChecks.then(createEmployee(toSave)).flatMap(savedEmployee -> {
             Map<String, List<String>> attrs = request.getAttributes();
             if(attrs == null || attrs.isEmpty()){
                 return Mono.just(savedEmployee);
@@ -305,8 +310,11 @@ public class EmployeeService {
                     Map<String, List<String>> attrs = request.getAttributes();
                     final Map<String, List<String>> attrsLocal = (attrs == null) ? Collections.emptyMap() : attrs;
 
+                    // Validate unique attributes (email and averageRegistrationNumber) excluding this employee
+                    Mono<Void> uniquenessChecks = validateUniqueAttributes(attrsLocal, savedEmployee.getId());
+
                             // upsert provided attributes using a single safe MERGE (upsert) then load the attribute id
-                            Mono<Void> upserts = Flux.fromIterable(attrsLocal.entrySet())
+                        Mono<Void> upserts = uniquenessChecks.thenMany(Flux.fromIterable(attrsLocal.entrySet()))
                                     .concatMap(e -> {
                                         String name = e.getKey();
                                         List<String> values = e.getValue() == null ? Collections.emptyList() : e.getValue();
@@ -343,6 +351,42 @@ public class EmployeeService {
                     // upsert behavior for each provided attribute.
                     return upserts.then(deletions).then(Mono.just(savedEmployee));
                 });
+    }
+
+    /**
+     * Validate uniqueness of specific attributes across employees.
+     * Checks 'email' and 'averageRegistrationNumber'. If a match exists in another employee,
+     * returns a CONFLICT error. When excludeEmployeeId is non-null, allow matches for that same employee.
+     */
+    private Mono<Void> validateUniqueAttributes(Map<String, List<String>> attrs, Integer excludeEmployeeId) {
+        List<Mono<Void>> checks = new java.util.ArrayList<>();
+
+        BiFunction<String, String, Mono<Void>> makeCheck = (attrName, value) -> {
+            if(value == null || value.isBlank()) return Mono.empty();
+            return employeeRepository.findByAttributeNameAndValue(attrName, value)
+                    .flatMap(found -> {
+                        if(excludeEmployeeId != null && found.getId().equals(excludeEmployeeId)) {
+                            return Mono.empty();
+                        }
+                        String msg = "Another employee with same " + ("email".equals(attrName) ? "email" : "average registration number") + " exists";
+                        return Mono.<Void>error(new ResponseStatusException(HttpStatus.CONFLICT, msg));
+                    })
+                    .then();
+        };
+
+        // email checks (all provided values)
+        if(attrs.containsKey("email")) {
+            List<String> emails = attrs.getOrDefault("email", Collections.emptyList());
+            emails.stream().filter(v -> v != null && !v.isBlank()).forEach(v -> checks.add(makeCheck.apply("email", v)));
+        }
+        // averageRegistrationNumber checks (all provided values)
+        if(attrs.containsKey("averageRegistrationNumber")) {
+            List<String> regs = attrs.getOrDefault("averageRegistrationNumber", Collections.emptyList());
+            regs.stream().filter(v -> v != null && !v.isBlank()).forEach(v -> checks.add(makeCheck.apply("averageRegistrationNumber", v)));
+        }
+
+        if(checks.isEmpty()) return Mono.empty();
+        return Flux.concat(checks).then();
     }
 
     /**
@@ -414,30 +458,52 @@ public class EmployeeService {
                     if (!passwordEncoder.matches(request.getPassword(), employee.getPassword())) {
                         return Mono.<AuthResponse>error(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
                     }
-                    logger.info("Este es un mensaje de información:"+ employee.getNames());
-                    logger.info("Este es un mensaje de información:"+ employee.getRol_id());
-                    logger.info("Este es un mensaje de información:"+ employee.getSecret());
-                    // fetch role and permission
-                    if (employee.getRol_id() == null) {
-                        AuthResponse r = new AuthResponse(employee.getId(), employee.getNames(), employee.getLastnames(), employee.getIdentification_type(), employee.getIdentification_number(), null, null, null, Collections.emptyList());
-                        return Mono.just(r);
-                    }                    
-                    logger.info("Este es un mensaje de información:"+ employee.getNames());
-                    return rolService.getRolWithPermissions(employee.getRol_id())
-                            .map(rolWithPermissions -> new AuthResponse(
-                                    employee.getId(),
-                                    employee.getNames(),
-                                    employee.getLastnames(),
-                                    employee.getIdentification_type(),
-                                    employee.getIdentification_number(),
-                                    employee.getRol_id(),
-                                    rolWithPermissions.getName(),
-                                    employee.getSecret(),
-                                    rolWithPermissions.getPermissions()
-                            ));
+
+                    // Evaluate and log loginEnabled attribute, block auth if disabled
+                    return isLoginEnabled(employee.getId()).flatMap(enabled -> {
+                        logger.info("loginEnabled attribute for employee {}: {}", employee.getId(), enabled);
+                        if(!enabled){
+                            return Mono.<AuthResponse>error(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User login disabled"));
+                        }
+
+                        logger.info("Este es un mensaje de información:"+ employee.getNames());
+                        logger.info("Este es un mensaje de información:"+ employee.getRol_id());
+                        logger.info("Este es un mensaje de información:"+ employee.getSecret());
+                        // fetch role and permission
+                        if (employee.getRol_id() == null) {
+                            AuthResponse r = new AuthResponse(employee.getId(), employee.getNames(), employee.getLastnames(), employee.getIdentification_type(), employee.getIdentification_number(), null, null, null, Collections.emptyList());
+                            return Mono.just(r);
+                        }                    
+                        logger.info("Este es un mensaje de información:"+ employee.getNames());
+                        return rolService.getRolWithPermissions(employee.getRol_id())
+                                .map(rolWithPermissions -> new AuthResponse(
+                                        employee.getId(),
+                                        employee.getNames(),
+                                        employee.getLastnames(),
+                                        employee.getIdentification_type(),
+                                        employee.getIdentification_number(),
+                                        employee.getRol_id(),
+                                        rolWithPermissions.getName(),
+                                        employee.getSecret(),
+                                        rolWithPermissions.getPermissions()
+                                ));
+                    });
                 });
     }
-
+    /**
+     * Returns true only if 'loginEnabled' attribute exists and its first value equals 'true' (case-insensitive).
+     * Missing attribute or any other value is treated as disabled (false).
+     */
+    private Mono<Boolean> isLoginEnabled(Integer employeeId) {
+        return attributeEmployeeRepository.findByEmployeeId(employeeId)
+                .filter(attr -> "loginEnabled".equals(attr.getName_attribute()))
+                .next()
+                .flatMap(attr -> valueAttributeEmployeeRepository.findByAttributeId(attr.getId())
+                        .map(ValueAttributeEmployee::getValueAttribute)
+                        .next())
+                .map(val -> val != null && "true".equalsIgnoreCase(val.trim()))
+                .defaultIfEmpty(false);
+    }
     /**
      * Reset password - sends email with JWT token
      */
