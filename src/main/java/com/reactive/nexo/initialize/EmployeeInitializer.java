@@ -64,7 +64,11 @@ public class EmployeeInitializer implements CommandLineRunner {
                              new Employee(null,"Huber","Guaza","CC","4"),
                              new Employee(null,"Kenner","Zambrano","CC","5"),
                              new Employee(null,"Yeider","Caicedo","CC","6"),
-                             new Employee(null,"Jhordy","Abonia","CC","7"));
+                             new Employee(null,"Jhordy","Abonia","CC","7"),
+                             new Employee(null,"Jhon","Doe 1","CC","8"),
+                             new Employee(null,"Jhon","Doe 2","CC","9"),
+                             new Employee(null,"Jhon","Doe 3","CC","10"),
+                             new Employee(null,"Jhon","Doe 4","CC","11"));
         out.get(6).setPassword(passwordEncoder.encode("string"));
         out.get(5).setPassword(passwordEncoder.encode("string"));
         out.get(6).setRol_id(1);
@@ -93,10 +97,10 @@ public class EmployeeInitializer implements CommandLineRunner {
                         attrs.add(new AttributeEmployee(null,"telefono",false,  e.getId()));
                         attrs.add(new AttributeEmployee(null,"email",false,  e.getId()));
                         attrs.add(new AttributeEmployee(null,"regimen",false,  e.getId()));
-                        // clinical history example attributes
-                        attrs.add(new AttributeEmployee(null,"historia_clinica_numero",false,  e.getId()));
-                        attrs.add(new AttributeEmployee(null,"diagnostico_principal",false,  e.getId()));
-                        attrs.add(new AttributeEmployee(null,"alergias",true,  e.getId()));
+
+                        attrs.add(new AttributeEmployee(null,"loginEnabled",false,  e.getId()));
+                        attrs.add(new AttributeEmployee(null,"averageRegistrationNumber",false,  e.getId()));
+                        
                     }
                     return attributeEmployeeRepository.saveAll(Flux.fromIterable(attrs)).collectList();
                 })
@@ -118,10 +122,8 @@ public class EmployeeInitializer implements CommandLineRunner {
                             case "ultima consulta": val = "2024-06-06"; break;
                             case "telefono": val = "315-000-0000"; break;
                             case "email": val = "jhon-doe@test.co"; break;
-                            case "regimen": val = "subcidiado"; break;
-                            case "historia_clinica_numero": val = "HC-1000" + a.getId(); break;
-                            case "diagnostico_principal": val = "Hipertension"; break;
-                            case "alergias": val = "Ninguna"; break;
+                            case "loginEnabled": val = "true"; break;
+                            case "averageRegistrationNumber": val = "ARN-" + a.getId(); break;
                             default: val = "";
                         }
                         vals.add(new com.reactive.nexo.model.ValueAttributeEmployee(null, a.getId(), val));
@@ -135,6 +137,10 @@ public class EmployeeInitializer implements CommandLineRunner {
                 .subscribe(employee -> {
                     log.info("Employee Inserted from CommandLineRunner " + employee);
                 });
+    }
+    
+    private void initializeAttributes(){
+        
     }
 
     private void RolinitialDataSetup() {
@@ -188,10 +194,8 @@ public class EmployeeInitializer implements CommandLineRunner {
             new Permission(null, 1, "DELETE", "/api/v1/users"),
             //ROL DOCTOR
             new Permission(null, 2, "GET", "/api/v1/users"),
-            new Permission(null, 2, "PUT", "/api/v1/users"),
             new Permission(null, 2, "PATCH", "/api/v1/users"),
-            new Permission(null, 2, "POST", "/api/v1/users"),
-            new Permission(null, 2, "DELETE", "/api/v1/users")
+            new Permission(null, 2, "GET", "/api/v1/schedule/employee/{employeeId}")
         );
     }
 }
