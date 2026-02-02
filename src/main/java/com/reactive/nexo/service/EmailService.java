@@ -22,8 +22,14 @@ public class EmailService {
     @Value("${email.reset-password.subject:${EMAIL_RESET_PASSWORD_SUBJECT:Recuperación de Contraseña - Nexo Salud}}")
     private String resetPasswordSubject;
 
+    @Value("${email.new-password.subject:${EMAIL_NEW_PASSWORD_SUBJECT:Agregar Contraseña - Nexo Salud}}")
+    private String newPasswordSubject;
+
     @Value("${email.reset-password.text:${EMAIL_RESET_PASSWORD_TEXT:Estimado usuario, para recuperar su contraseña haga clic en el siguiente enlace:}}")
     private String resetPasswordText;
+
+    @Value("${email.new-password.text:${EMAIL_NEW_PASSWORD_TEXT:Estimado usuario, para agregar su contraseña haga clic en el siguiente enlace:}}")
+    private String newPasswordText;
 
     @Value("${email.reset-password.website:${EMAIL_RESET_PASSWORD_WEBSITE:https://nexosalud.com/reset-password}}")
     private String resetPasswordWebsite;
@@ -35,15 +41,15 @@ public class EmailService {
     /**
      * Send password reset email
      */
-    public Mono<Boolean> sendPasswordResetEmail(String toEmail, String resetToken) {
+    public Mono<Boolean> sendPasswordResetEmail(String toEmail, String resetToken,Boolean isNewPassword) {
         return Mono.fromCallable(() -> {
             try {
                 SimpleMailMessage message = new SimpleMailMessage();
                 message.setFrom(fromEmail);
                 message.setTo(toEmail);
-                message.setSubject(resetPasswordSubject);
+                message.setSubject(isNewPassword ? newPasswordSubject : resetPasswordSubject);
                 
-                String emailBody = buildPasswordResetEmailBody(resetToken);
+                String emailBody = isNewPassword ? buildPasswordNewEmailBody(resetToken) : buildPasswordResetEmailBody(resetToken);
                 message.setText(emailBody);
                 
                 mailSender.send(message);
@@ -67,6 +73,18 @@ public class EmailService {
         body.append("Atentamente,\n");
         body.append("Equipo Nexo Salud");
         logger.info("Built password reset email body: {}", body.toString());
+        
+        return body.toString();
+    }
+
+    private String buildPasswordNewEmailBody(String resetToken) {
+        StringBuilder body = new StringBuilder();
+        body.append(newPasswordText).append("\n\n");
+        body.append(resetPasswordWebsite).append("?token=").append(resetToken).append("\n\n");
+        body.append("Este enlace expirará en 24 horas.\n");
+        body.append("Atentamente,\n");
+        body.append("Equipo Nexo Salud");
+        logger.info("Built password new email body: {}", body.toString());
         
         return body.toString();
     }

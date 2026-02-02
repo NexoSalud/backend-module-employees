@@ -40,7 +40,7 @@ private EmployeeService employeeService;
                             List<String> attributeValues = attribute.getValue();                            
                             if (("correo".equals(attributeName) || "email".equals(attributeName)) 
                                 && attributeValues != null && !attributeValues.isEmpty()) {
-                                employeeService.resetPassword(employee.getId())
+                                employeeService.resetPassword(employee.getId(),true)
                                         .subscribe(success -> {
                                             if (success) {
                                                 logger.info("Password reset email sent to: " + attributeValues.get(0));
@@ -141,7 +141,7 @@ private EmployeeService employeeService;
     @GetMapping("/reset-password/{identificationType}/{identificationNumber}")
     public Mono<ResponseEntity<String>> resetPassword(@PathVariable("identificationType") String identificationType,
                                                       @PathVariable("identificationNumber") String identificationNumber) {
-        return employeeService.resetPassword(identificationType, identificationNumber)
+        return employeeService.resetPassword(identificationType, identificationNumber,false)
                 .map(success -> {
                     if (success) {
                         return ResponseEntity.ok("Password reset email sent successfully");

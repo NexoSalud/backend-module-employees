@@ -507,7 +507,7 @@ public class EmployeeService {
     /**
      * Reset password - sends email with JWT token
      */
-    public Mono<Boolean> resetPassword(Integer employeeId) {
+    public Mono<Boolean> resetPassword(Integer employeeId,Boolean isNewPassword) {
         return employeeRepository.findById(employeeId)
                 .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Employee not found")))
                 .flatMap(employee -> {
@@ -521,7 +521,7 @@ public class EmployeeService {
                                         resetToken.substring(0, Math.min(resetToken.length(), 20)) + "...");
                                 
                                 // Send email
-                                return emailService.sendPasswordResetEmail(email, resetToken);
+                                return emailService.sendPasswordResetEmail(email, resetToken,isNewPassword);
                             });
                 });
     }
@@ -529,12 +529,12 @@ public class EmployeeService {
     /**
      * Reset password by identification type and number - sends email with JWT token
      */
-    public Mono<Boolean> resetPassword(String identificationType, String identificationNumber) {
+    public Mono<Boolean> resetPassword(String identificationType, String identificationNumber,Boolean isNewPassword) {
         return employeeRepository.findByIdentificationTypeAndNumber(
                         identificationType != null ? identificationType.toUpperCase() : null,
                         identificationNumber)
                 .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Employee not found")))
-                .flatMap(employee -> {  return this.resetPassword(employee.getId());    });
+                .flatMap(employee -> {  return this.resetPassword(employee.getId(),isNewPassword);    });
     }
 
     /**
