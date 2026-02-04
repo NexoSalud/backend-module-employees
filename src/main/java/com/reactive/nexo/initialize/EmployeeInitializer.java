@@ -174,7 +174,18 @@ public class EmployeeInitializer implements CommandLineRunner {
             new Permission(null, 1, "GET", "/api/v1/schedule"),
             new Permission(null, 1, "PUT", "/api/v1/schedule"),
             new Permission(null, 1, "POST", "/api/v1/schedule"),
-            new Permission(null, 1, "DELETE", "/api/v1/schedule"),
+            new Permission(null, 1, "DELETE", "/api/v1/schedule"),            
+
+            new Permission(null, 1, "GET", "/api/v1/medical-agenda"),
+            new Permission(null, 1, "PUT", "/api/v1/medical-agenda"),
+            new Permission(null, 1, "POST", "/api/v1/medical-agenda"),
+            new Permission(null, 1, "DELETE", "/api/v1/medical-agenda"),
+            ///api/v1/appointments
+
+            new Permission(null, 1, "GET", "/api/v1/appointments"),
+            new Permission(null, 1, "PUT", "/api/v1/appointments"),
+            new Permission(null, 1, "POST", "/api/v1/appointments"),
+            new Permission(null, 1, "DELETE", "/api/v1/appointments"),
 
             new Permission(null, 1, "GET", "/api/v1/rols"),
             new Permission(null, 1, "PUT", "/api/v1/rols"),
