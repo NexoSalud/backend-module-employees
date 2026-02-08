@@ -404,17 +404,33 @@ public class EmployeeService {
     public Mono<Employee> partialUpdateEmployee(Integer employeeId, com.reactive.nexo.dto.CreateEmployeeRequest request) {
         return employeeRepository.findById(employeeId)
                 .flatMap(dbEmployee -> {
-                    // Check if identification_number is being changed and validate uniqueness
-                   /* if(request.getIdentification_number() != null && 
-                       !dbEmployee.getIdentification_number().equals(request.getIdentification_number())) {
-                        return employeeRepository.findByIdentificationTypeAndNumber(
-                                request.getIdentification_type(),
-                                request.getIdentification_number())
-                                .flatMap(conflict -> Mono.<Employee>error(new ResponseStatusException(HttpStatus.CONFLICT, "Another employee with same identification exists")))
-                                .switchIfEmpty(Mono.defer(() -> applyPartialUpdates(dbEmployee, request)));
-                    }*/
-                    // No identification change, apply partial updates directly
-                    return applyPartialUpdates(dbEmployee, request);
+                    // Validate unique attributes (email, averageRegistrationNumber, medical_registry) excluding this employee
+                    final Map<String, List<String>> attrsLocal = (request.getAttributes() == null) ? Collections.emptyMap() : request.getAttributes();
+                    Mono<Void> uniquenessChecks = validateUniqueAttributes(attrsLocal, employeeId);
+
+                    return uniquenessChecks
+                            .then(applyPartialUpdates(dbEmployee, request))
+                            .flatMap(savedEmployee -> {
+                                if (attrsLocal.isEmpty()) {
+                                    return Mono.just(savedEmployee);
+                                }
+                                // Upsert only provided attributes (PATCH semantics: replace provided ones, do not delete others)
+                                Mono<Void> upserts = Flux.fromIterable(attrsLocal.entrySet())
+                                        .concatMap(e -> {
+                                            String name = e.getKey();
+                                            List<String> values = e.getValue() == null ? Collections.emptyList() : e.getValue();
+                                            return attributeEmployeeRepository.upsertByEmployeeIdAndName(savedEmployee.getId(), name, values.size() > 1)
+                                                    .then(attributeEmployeeRepository.findByEmployeeIdAndName(savedEmployee.getId(), name))
+                                                    .flatMap(foundAttr -> valueAttributeEmployeeRepository.findByAttributeId(foundAttr.getId())
+                                                            .flatMap(valueAttributeEmployeeRepository::delete)
+                                                            .thenMany(Flux.fromIterable(values))
+                                                            .flatMap(v -> valueAttributeService.saveValue(new ValueAttributeEmployee(null, foundAttr.getId(), v)))
+                                                            .then());
+                                        })
+                                        .then();
+
+                                return upserts.then(Mono.just(savedEmployee));
+                            });
                 });
     }
 

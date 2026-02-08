@@ -106,7 +106,6 @@ private EmployeeService employeeService;
                     updatedEmployee.setPassword("***");
                     updatedEmployee.setSecret("***");
                     return ResponseEntity.ok(updatedEmployee);})
-                .onErrorResume(err -> Mono.just(ResponseEntity.status(HttpStatus.CONFLICT).build()))
                 .defaultIfEmpty(ResponseEntity.notFound().build());
     }
 
