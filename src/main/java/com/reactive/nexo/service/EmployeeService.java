@@ -368,7 +368,11 @@ public class EmployeeService {
                         if(excludeEmployeeId != null && found.getId().equals(excludeEmployeeId)) {
                             return Mono.empty();
                         }
-                        String msg = "Another employee with same " + ("email".equals(attrName) ? "email" : "average registration number") + " exists";
+                        String readable =
+                                "email".equals(attrName) ? "email" :
+                                ("averageRegistrationNumber".equals(attrName) ? "average registration number" :
+                                ("medical_registry".equals(attrName) ? "medical registry" : attrName));
+                        String msg = "Another employee with same " + readable + " exists";
                         return Mono.<Void>error(new ResponseStatusException(HttpStatus.CONFLICT, msg));
                     })
                     .then();
@@ -384,6 +388,11 @@ public class EmployeeService {
             List<String> regs = attrs.getOrDefault("averageRegistrationNumber", Collections.emptyList());
             regs.stream().filter(v -> v != null && !v.isBlank()).forEach(v -> checks.add(makeCheck.apply("averageRegistrationNumber", v)));
         }
+        // medical_registry checks (all provided values)
+        if(attrs.containsKey("medical_registry")) {
+            List<String> medRegs = attrs.getOrDefault("medical_registry", Collections.emptyList());
+            medRegs.stream().filter(v -> v != null && !v.isBlank()).forEach(v -> checks.add(makeCheck.apply("medical_registry", v)));
+        }
 
         if(checks.isEmpty()) return Mono.empty();
         return Flux.concat(checks).then();
@@ -396,14 +405,14 @@ public class EmployeeService {
         return employeeRepository.findById(employeeId)
                 .flatMap(dbEmployee -> {
                     // Check if identification_number is being changed and validate uniqueness
-                    if(request.getIdentification_number() != null && 
+                   /* if(request.getIdentification_number() != null && 
                        !dbEmployee.getIdentification_number().equals(request.getIdentification_number())) {
                         return employeeRepository.findByIdentificationTypeAndNumber(
-                                request.getIdentification_type() != null ? request.getIdentification_type() : dbEmployee.getIdentification_type(),
+                                request.getIdentification_type(),
                                 request.getIdentification_number())
                                 .flatMap(conflict -> Mono.<Employee>error(new ResponseStatusException(HttpStatus.CONFLICT, "Another employee with same identification exists")))
                                 .switchIfEmpty(Mono.defer(() -> applyPartialUpdates(dbEmployee, request)));
-                    }
+                    }*/
                     // No identification change, apply partial updates directly
                     return applyPartialUpdates(dbEmployee, request);
                 });
