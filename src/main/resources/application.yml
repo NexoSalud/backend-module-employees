@@ -9,6 +9,13 @@ spring:
     init:
       mode: always
       schema-locations: classpath:schema.sql
+  flyway:
+    enabled: true
+    url: jdbc:postgresql://localhost:5432/nexosalud
+    user: postgres
+    password: postgres
+    locations: classpath:db/migration
+    baseline-on-migrate: true
   # Email Configuration
   mail:
     host: ${EMAIL_HOST:smtp.gmail.com}
@@ -49,6 +56,8 @@ spring:
     password:
   application:
     name: employees-service
+  flyway:
+    enabled: false
   mail:
     host: localhost
     port: 25
@@ -79,6 +88,13 @@ spring:
     init:
       mode: always
       schema-locations: classpath:schema.sql
+  flyway:
+    enabled: true
+    url: jdbc:postgresql://localhost:5432/nexosalud
+    user: postgres
+    password: postgres
+    locations: classpath:db/migration
+    baseline-on-migrate: true
   mail:
     host: ${EMAIL_HOST:smtp.gmail.com}
     port: ${EMAIL_PORT:587}

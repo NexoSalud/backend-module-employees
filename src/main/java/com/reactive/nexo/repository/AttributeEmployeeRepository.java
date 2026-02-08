@@ -13,6 +13,6 @@ public interface AttributeEmployeeRepository extends ReactiveCrudRepository<Attr
     @Query("select id,employee_id,name_attribute,multiple from attribute_employee where employee_id = $1 and name_attribute = $2 limit 1")
     Mono<AttributeEmployee> findByEmployeeIdAndName(Integer employeeId, String nameAttribute);
 
-    @Query("MERGE INTO attribute_employee (employee_id, name_attribute, multiple) KEY (employee_id, name_attribute) VALUES ($1, $2, $3)")
+    @Query("INSERT INTO attribute_employee (employee_id, name_attribute, multiple) VALUES ($1, $2, $3) ON CONFLICT (employee_id, name_attribute) DO UPDATE SET multiple = EXCLUDED.multiple")
     Mono<Integer> upsertByEmployeeIdAndName(Integer employeeId, String nameAttribute, Boolean multiple);
 }
