@@ -69,7 +69,7 @@ public class EmployeeService {
         }
         // enforce uniqueness of (identification_type, identification_number)
         return employeeRepository.findByIdentificationTypeAndNumber(employee.getIdentification_type(), employee.getIdentification_number())
-                .flatMap(existing -> Mono.<Employee>error(new ResponseStatusException(HttpStatus.CONFLICT, "Employee with same identification already exists")))
+                .flatMap(existing -> Mono.<Employee>error(new ResponseStatusException(HttpStatus.CONFLICT, "un empleado con el mismo tipo y número de identificación ya existe")))
                 .switchIfEmpty(employeeRepository.save(employee));
     }
 
@@ -173,7 +173,7 @@ public class EmployeeService {
                                 }
                                 return employeeRepository.save(dbEmployee);
                             }
-                            return Mono.<Employee>error(new ResponseStatusException(HttpStatus.CONFLICT, "Another employee with same identification exists"));
+                            return Mono.<Employee>error(new ResponseStatusException(HttpStatus.CONFLICT, "Un empleado con el mismo tipo y número de identificación ya existe"));
                         })
                         .switchIfEmpty(Mono.defer(() -> {
                             // different identification — update all fields
@@ -290,7 +290,7 @@ public class EmployeeService {
                                 return employeeRepository.save(dbEmployee);
                             }
                             log.info("updateEmployeeWithAttributes - conflict with other employee id={}", conflict.getId());
-                            return Mono.<Employee>error(new ResponseStatusException(HttpStatus.CONFLICT, "Another employee with same identification exists"));
+                            return Mono.<Employee>error(new ResponseStatusException(HttpStatus.CONFLICT, "Un empleado con el mismo tipo y número de identificación ya existe"));
                         })
                         .switchIfEmpty(Mono.defer(() -> {
                             dbEmployee.setNames(request.getNames());
@@ -372,7 +372,7 @@ public class EmployeeService {
                                 "email".equals(attrName) ? "email" :
                                 ("averageRegistrationNumber".equals(attrName) ? "average registration number" :
                                 ("medical_registry".equals(attrName) ? "medical registry" : attrName));
-                        String msg = "Another employee with same " + readable + " exists";
+                        String msg = "Un empleado con el mismo " + readable + " ya existe";
                         return Mono.<Void>error(new ResponseStatusException(HttpStatus.CONFLICT, msg));
                     })
                     .then();
