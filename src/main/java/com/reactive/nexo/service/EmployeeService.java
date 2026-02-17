@@ -237,7 +237,7 @@ public class EmployeeService {
             }
         }
         toSave.setRol_id(request.getRol_id());
-        // Validate unique attributes (email and averageRegistrationNumber) before saving
+        // Validate unique attributes (email and medical_registry) before saving
         Map<String, List<String>> incomingAttrs = request.getAttributes();
         final Map<String, List<String>> attrsToCheck = incomingAttrs == null ? Collections.emptyMap() : incomingAttrs;
         Mono<Void> uniquenessChecks = validateUniqueAttributes(attrsToCheck, null);
@@ -310,7 +310,7 @@ public class EmployeeService {
                     Map<String, List<String>> attrs = request.getAttributes();
                     final Map<String, List<String>> attrsLocal = (attrs == null) ? Collections.emptyMap() : attrs;
 
-                    // Validate unique attributes (email and averageRegistrationNumber) excluding this employee
+                    // Validate unique attributes (email and medical_registry) excluding this employee
                     Mono<Void> uniquenessChecks = validateUniqueAttributes(attrsLocal, savedEmployee.getId());
 
                             // upsert provided attributes using a single safe MERGE (upsert) then load the attribute id
@@ -355,7 +355,7 @@ public class EmployeeService {
 
     /**
      * Validate uniqueness of specific attributes across employees.
-     * Checks 'email' and 'averageRegistrationNumber'. If a match exists in another employee,
+     * Checks 'email' and 'medical_registry'. If a match exists in another employee,
      * returns a CONFLICT error. When excludeEmployeeId is non-null, allow matches for that same employee.
      */
     private Mono<Void> validateUniqueAttributes(Map<String, List<String>> attrs, Integer excludeEmployeeId) {
@@ -370,8 +370,7 @@ public class EmployeeService {
                         }
                         String readable =
                                 "email".equals(attrName) ? "email" :
-                                ("averageRegistrationNumber".equals(attrName) ? "average registration number" :
-                                ("medical_registry".equals(attrName) ? "medical registry" : attrName));
+                                ("medical_registry".equals(attrName) ? "medical registry" : attrName);
                         String msg = "Un empleado con el mismo " + readable + " ya existe";
                         return Mono.<Void>error(new ResponseStatusException(HttpStatus.CONFLICT, msg));
                     })
@@ -382,11 +381,6 @@ public class EmployeeService {
         if(attrs.containsKey("email")) {
             List<String> emails = attrs.getOrDefault("email", Collections.emptyList());
             emails.stream().filter(v -> v != null && !v.isBlank()).forEach(v -> checks.add(makeCheck.apply("email", v)));
-        }
-        // averageRegistrationNumber checks (all provided values)
-        if(attrs.containsKey("averageRegistrationNumber")) {
-            List<String> regs = attrs.getOrDefault("averageRegistrationNumber", Collections.emptyList());
-            regs.stream().filter(v -> v != null && !v.isBlank()).forEach(v -> checks.add(makeCheck.apply("averageRegistrationNumber", v)));
         }
         // medical_registry checks (all provided values)
         if(attrs.containsKey("medical_registry")) {
@@ -404,7 +398,7 @@ public class EmployeeService {
     public Mono<Employee> partialUpdateEmployee(Integer employeeId, com.reactive.nexo.dto.CreateEmployeeRequest request) {
         return employeeRepository.findById(employeeId)
                 .flatMap(dbEmployee -> {
-                    // Validate unique attributes (email, averageRegistrationNumber, medical_registry) excluding this employee
+                    // Validate unique attributes (email, medical_registry) excluding this employee
                     final Map<String, List<String>> attrsLocal = (request.getAttributes() == null) ? Collections.emptyMap() : request.getAttributes();
                     Mono<Void> uniquenessChecks = validateUniqueAttributes(attrsLocal, employeeId);
 

@@ -99,7 +99,6 @@ public class EmployeeInitializer implements CommandLineRunner {
                         attrs.add(new AttributeEmployee(null,"regimen",false,  e.getId()));
 
                         attrs.add(new AttributeEmployee(null,"loginEnabled",false,  e.getId()));
-                        attrs.add(new AttributeEmployee(null,"averageRegistrationNumber",false,  e.getId()));
                         
                     }
                     return attributeEmployeeRepository.saveAll(Flux.fromIterable(attrs)).collectList();
@@ -123,7 +122,6 @@ public class EmployeeInitializer implements CommandLineRunner {
                             case "telefono": val = "315-000-0000"; break;
                             case "email": val = "jhon-doe@test.co"; break;
                             case "loginEnabled": val = "true"; break;
-                            case "averageRegistrationNumber": val = "ARN-" + a.getId(); break;
                             default: val = "";
                         }
                         vals.add(new com.reactive.nexo.model.ValueAttributeEmployee(null, a.getId(), val));

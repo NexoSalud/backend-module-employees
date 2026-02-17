@@ -29,7 +29,6 @@ CREATE TABLE employees (
 	password VARCHAR(255),
 	rol_id INT,
 	secret VARCHAR(255),
-	login_enabled BOOLEAN DEFAULT FALSE,
 	CONSTRAINT uq_employees_identification UNIQUE (identification_type, identification_number),
 	CONSTRAINT fk_employees_rol FOREIGN KEY (rol_id) REFERENCES rol(id)
 );
