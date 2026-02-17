@@ -160,8 +160,8 @@ public class EmployeeInitializer implements CommandLineRunner {
 
     private List<Rol> createRoles() {
         return Arrays.asList(
-            new Rol(null, "ADMIN"),
-            new Rol(null, "DOCTOR")
+            new Rol(null, "ADMIN",false),
+            new Rol(null, "DOCTOR",true)
         );
     }
 
