@@ -14,6 +14,7 @@ public class RolWithPermissionDTO {
 
     private Integer id;
     private String name;
+    private Boolean asistencial;
     
     @JsonProperty("permission")
     private List<Map<String, List<String>>> permissions;

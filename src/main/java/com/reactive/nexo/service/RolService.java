@@ -82,7 +82,7 @@ public class RolService {
                     .map(entry -> Collections.singletonMap(entry.getKey(), entry.getValue()))
                     .collect(Collectors.toList());
 
-                return new RolWithPermissionDTO(rol.getId(), rol.getName(), formattedPermissions);
+                return new RolWithPermissionDTO(rol.getId(), rol.getName(), rol.getAsistencial(), formattedPermissions);
             })
             .doOnSuccess(result -> log.info("getRolWithPermissions - successfully fetched role with {} method groups", 
                 result.getPermissions() != null ? result.getPermissions().size() : 0))

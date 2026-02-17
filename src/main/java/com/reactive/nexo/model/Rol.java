@@ -15,4 +15,11 @@ public class Rol {
     @Id
     private Integer id;
     private String name;
+    private Boolean asistencial = Boolean.TRUE;
+
+    public Rol(Integer id, String name) {
+        this.id = id;
+        this.name = name;
+        this.asistencial = Boolean.TRUE;
+    }
 }
