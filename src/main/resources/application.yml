@@ -7,7 +7,7 @@ spring:
     name: employees-service
   sql:
     init:
-      mode: always
+      mode: never
       schema-locations: classpath:schema.sql
   flyway:
     enabled: true
@@ -86,7 +86,7 @@ spring:
     name: employees-service
   sql:
     init:
-      mode: always
+      mode: never
       schema-locations: classpath:schema.sql
   flyway:
     enabled: true

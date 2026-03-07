@@ -52,9 +52,9 @@ public class EmployeeInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        RolinitialDataSetup();
+        //RolinitialDataSetup();
         // Datos de prueba inhabilitados:
-        // initialDataSetup();
+        //initialDataSetup();
     }
 
     private List<Employee> getData(){
