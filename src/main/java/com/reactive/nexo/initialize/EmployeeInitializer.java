@@ -52,9 +52,8 @@ public class EmployeeInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        
-        RolinitialDataSetup();
-        initialDataSetup();
+        // RolinitialDataSetup();
+        // initialDataSetup();
     }
 
     private List<Employee> getData(){
