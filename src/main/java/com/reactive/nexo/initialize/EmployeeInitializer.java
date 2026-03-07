@@ -52,7 +52,8 @@ public class EmployeeInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        // RolinitialDataSetup();
+        RolinitialDataSetup();
+        // Datos de prueba inhabilitados:
         // initialDataSetup();
     }
 
@@ -141,20 +142,22 @@ public class EmployeeInitializer implements CommandLineRunner {
     }
 
     private void RolinitialDataSetup() {
-        rolRepository.deleteAll()
-            .thenMany(permissionRepository.deleteAll())
-            .thenMany(Flux.fromIterable(createRoles()))            
-            .flatMap(rolRepository::save)
-            .collectList()
-            .flatMap(savedRol -> {              
-                List<Permission> permissions = createPermissions();
-                return permissionRepository.saveAll(permissions).collectList(); 
-            })
-            .subscribe(
-                null,
-                error -> log.error("RolInitializer - error during data setup: {}", error.getMessage()),
-                () -> log.info("RolInitializer - data setup completed successfully")
-            );
+        rolRepository.count().flatMap(count -> {
+            if (count > 0) {
+                return reactor.core.publisher.Mono.empty();
+            }
+            return Flux.fromIterable(createRoles())
+                .flatMap(rolRepository::save)
+                .collectList()
+                .flatMap(savedRol -> {              
+                    List<Permission> permissions = createPermissions();
+                    return permissionRepository.saveAll(permissions).collectList(); 
+                });
+        }).subscribe(
+            null,
+            error -> log.error("RolInitializer - error during data setup: {}", error.getMessage()),
+            () -> log.info("RolInitializer - data setup completed successfully")
+        );
     }
 
     private List<Rol> createRoles() {
