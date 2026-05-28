@@ -510,8 +510,8 @@ public class EmployeeService {
                 });
     }
     /**
-     * Returns true only if 'loginEnabled' attribute exists and its first value equals 'true' (case-insensitive).
-     * Missing attribute or any other value is treated as disabled (false).
+     * Returns true if 'loginEnabled' attribute is missing OR its value equals 'true'.
+     * Only blocks login if the attribute explicitly exists with value 'false'.
      */
     private Mono<Boolean> isLoginEnabled(Integer employeeId) {
         return attributeEmployeeRepository.findByEmployeeId(employeeId)
@@ -520,8 +520,8 @@ public class EmployeeService {
                 .flatMap(attr -> valueAttributeEmployeeRepository.findByAttributeId(attr.getId())
                         .map(ValueAttributeEmployee::getValueAttribute)
                         .next())
-                .map(val -> val != null && "true".equalsIgnoreCase(val.trim()))
-                .defaultIfEmpty(false);
+                .map(val -> val == null || !"false".equalsIgnoreCase(val.trim()))
+                .defaultIfEmpty(true); // attribute missing → login allowed
     }
     /**
      * Reset password - sends email with JWT token
