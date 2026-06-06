@@ -3,37 +3,26 @@ spring:
     url: ${SPRING_R2DBC_URL:r2dbc:postgresql://localhost:5432/nexosalud}
     username: ${SPRING_R2DBC_USERNAME:postgres}
     password: ${SPRING_R2DBC_PASSWORD:postgres}
-  application:
-    name: employees-service
-  sql:
-    init:
-      mode: never
-      schema-locations: classpath:schema.sql
   flyway:
     enabled: true
     url: ${SPRING_FLYWAY_URL:jdbc:postgresql://localhost:5432/nexosalud}
     user: ${SPRING_R2DBC_USERNAME:postgres}
     password: ${SPRING_R2DBC_PASSWORD:postgres}
-    locations: classpath:db/migration
     baseline-on-migrate: true
-  mail:
-    host: ${EMAIL_HOST:smtp.gmail.com}
-    port: ${EMAIL_PORT:587}
-    username: ${EMAIL_USERNAME:}
-    password: ${EMAIL_PASSWORD:}
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
+    baseline-version: 0
+    locations: classpath:db/migration
+  sql:
+    init:
+      mode: ${SPRING_SQL_INIT_MODE:never}
+  application:
+    name: employees-service
 
 jwt:
-  secret: ${JWT_SECRET:mySecretKeyForJWTTokenGenerationAndValidation1234567890}
-  reset-password-expiration: ${JWT_RESET_PASSWORD_EXPIRATION:3600000}
+  secret: ${JWT_SECRET:test-secret-key-for-testing-purposes-only-12345678}
+  reset-password-expiration: 3600000
 
 email:
-  from: ${EMAIL_FROM:no-reply@nexosalud.com}
+  from: ${EMAIL_FROM:nexosalud@nexosalud.com}
   reset-password:
     subject: ${EMAIL_RESET_PASSWORD_SUBJECT:Recuperación de Contraseña - Nexo Salud}
     text: ${EMAIL_RESET_PASSWORD_TEXT:Estimado usuario, para recuperar su contraseña haga clic en el siguiente enlace:}
@@ -86,36 +75,31 @@ spring:
     url: ${SPRING_R2DBC_URL:r2dbc:postgresql://localhost:5432/nexosalud}
     username: ${SPRING_R2DBC_USERNAME:postgres}
     password: ${SPRING_R2DBC_PASSWORD:postgres}
-  application:
-    name: employees-service
-  sql:
-    init:
-      mode: never
   flyway:
     enabled: true
     url: ${SPRING_FLYWAY_URL:jdbc:postgresql://localhost:5432/nexosalud}
     user: ${SPRING_R2DBC_USERNAME:postgres}
     password: ${SPRING_R2DBC_PASSWORD:postgres}
-    locations: classpath:db/migration
     baseline-on-migrate: true
-  mail:
-    host: ${EMAIL_HOST:smtp.gmail.com}
-    port: ${EMAIL_PORT:587}
-    username: ${EMAIL_USERNAME:}
-    password: ${EMAIL_PASSWORD:}
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
+    baseline-version: 0
+    locations: classpath:db/migration
+  sql:
+    init:
+      mode: ${SPRING_SQL_INIT_MODE:never}
+  application:
+    name: employees-service
+
+management:
+  health:
+    mail:
+      enabled: false
 
 jwt:
-  secret: ${JWT_SECRET:mySecretKeyForJWTTokenGenerationAndValidation1234567890}
-  reset-password-expiration: ${JWT_RESET_PASSWORD_EXPIRATION:3600000}
+  secret: ${JWT_SECRET:test-secret-key-for-testing-purposes-only-12345678}
+  reset-password-expiration: 3600000
 
 email:
-  from: ${EMAIL_FROM:no-reply@nexosalud.com}
+  from: ${EMAIL_FROM:nexosalud@nexosalud.com}
   reset-password:
     subject: ${EMAIL_RESET_PASSWORD_SUBJECT:Recuperación de Contraseña - Nexo Salud}
     text: ${EMAIL_RESET_PASSWORD_TEXT:Estimado usuario, para recuperar su contraseña haga clic en el siguiente enlace:}
