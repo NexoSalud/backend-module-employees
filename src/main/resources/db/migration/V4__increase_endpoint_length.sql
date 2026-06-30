@@ -1,0 +1,1 @@
+ALTER TABLE permission ALTER COLUMN endpoint TYPE VARCHAR(255);
