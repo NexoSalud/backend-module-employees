@@ -207,7 +207,12 @@ public class EmployeeInitializer implements CommandLineRunner {
             //ROL DOCTOR
             new Permission(null, 2, "GET", "/api/v1/users"),
             new Permission(null, 2, "PATCH", "/api/v1/users"),
-            new Permission(null, 2, "GET", "/api/v1/schedule/employee/{employeeId}")
+            new Permission(null, 2, "GET", "/api/v1/schedule/employee/{employeeId}"),
+            // Utils
+            new Permission(null, 1, "GET", "/api/v1/utils"),
+            new Permission(null, 1, "PUT", "/api/v1/utils"),
+            new Permission(null, 1, "POST", "/api/v1/utils"),
+            new Permission(null, 1, "DELETE", "/api/v1/utils")
         );
     }
 }
